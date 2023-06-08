@@ -7,7 +7,7 @@ from sys import exception, platform
 from pathlib import Path
 from control_room.utils.logging import logger
 
-# Used separate multiple shell commands in one string
+# Used to separate multiple shell commands in one string
 COMMAND_SEP_MAP = {
     "darwin": ";",
     "win32": "&",
@@ -50,7 +50,7 @@ def start_container(
 
     Returns
     -------
-    subprocess.Popoe
+    subprocess.Popen
     """
 
     modpath = modules_root_path.joinpath(module_name)

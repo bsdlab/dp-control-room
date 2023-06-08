@@ -12,9 +12,7 @@ from control_room.utils.logging import logger
 # Mockup for ./control_room/processes.py start_container()
 
 
-def start_container(
-    name: str, ip: str = "127.0.0.1", port: int = 5050, **kwargs
-):
+def start_container(name: str, ip: str = "127.0.0.1", port: int = 5050, **kwargs):
     cmd = f"python -m tests.resources.tserver --port={port} --ip={ip}"
 
     return subprocess.Popen(cmd, shell=True)
@@ -68,9 +66,7 @@ class DummyModule:
 
 def get_dummy_modules():
     return [
-        DummyModule(
-            name="module1", type="decoding", port=8080, is_ready="True"
-        ),
+        DummyModule(name="module1", type="decoding", port=8080, is_ready="True"),
         DummyModule(name="module2", type="control", port=8081, is_ready=True),
         DummyModule(name="module3", type="control", port=8082, is_ready=True),
         DummyModule(name="module4", type="control", port=8083),

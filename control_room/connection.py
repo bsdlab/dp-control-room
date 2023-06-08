@@ -32,7 +32,7 @@ class ModuleConnection:
             self.name,
             self.ip,
             self.port,
-            self.loglevel,
+            loglevel=self.loglevel,
             modules_root_path=self.module_root_path,
             start_kwargs=self.kwargs,
         )
@@ -121,7 +121,8 @@ class ModuleConnectionExe(ModuleConnection):
         logger.debug(
             "Pcomms for exe modules currently need to be provided by the configs"
             "This will change to an analogeous behaviour to the python modules"
-            " once the AO communication is reworked."
+            " once the AO communication is reworked. Currently this means that "
+            "*.exe modules have to be started manually."
         )
 
     def start_module_server(self):

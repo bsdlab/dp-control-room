@@ -25,9 +25,7 @@ def run_server(
         "GET_PCOMMS": "START|INIT|STOP|RUN_BLOCK",
     }
 
-    server = DefaultServer(
-        port, ip=ip, pcommand_map=pcommand_map, name="control_room"
-    )
+    server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="control_room")
 
     # initialize to start the socket
     server.init_server(stop_event=stop_event)

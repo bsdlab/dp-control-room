@@ -39,7 +39,7 @@ def module_with_thread_for_tserver():
 def test_socket_connection(module_with_thread_for_tserver):
     con = module_with_thread_for_tserver
     con.get_pcommands()
-    assert tuple(con.pcomms) == ("START", "GET_PCOMMS")
+    assert tuple(con.pcomms) == ("START", "GET_PCOMMS", "STOP", "CLOSE")
 
 
 @pytest.fixture

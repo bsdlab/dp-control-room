@@ -86,9 +86,7 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
 
     connections = []
     log_server = psutil.Process(
-        subprocess.Popen(
-            "python -m control_room.utils.logserver", shell=True
-        ).pid
+        subprocess.Popen("python -m control_room.utils.logserver", shell=True).pid
     )
 
     try:

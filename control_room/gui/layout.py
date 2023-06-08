@@ -6,9 +6,7 @@ from control_room.connection import ModuleConnection
 from control_room.utils.logserver import logfile as log_file_path
 
 
-def get_layout(
-    modules: list[ModuleConnection], macros: dict | None
-) -> html.Div:
+def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div:
     logfile = log_file_path.stem + log_file_path.suffix
 
     module_tiles = [] if macros is None else [create_macro_tile(macros)]
@@ -27,9 +25,7 @@ def get_layout(
                     ),
                     html.Div("DAREPLANE Control Room", id="control_room_title"),
                     html.Div(
-                        children=[
-                            create_module_server_info(m) for m in modules
-                        ],
+                        children=[create_module_server_info(m) for m in modules],
                         id="module_server_check_boxes",
                     ),
                 ],
@@ -53,9 +49,7 @@ def get_layout(
                         children=module_tiles,
                     ),
                     # A timer for the log reading and the lsl fetch
-                    dcc.Interval(
-                        id="interval_3s", interval=3 * 1000, n_intervals=0
-                    ),
+                    dcc.Interval(id="interval_3s", interval=3 * 1000, n_intervals=0),
                 ],
             ),
             html.Div(id="last_pcomm_sent_div", className="hidden_div"),
@@ -83,9 +77,7 @@ def create_macro_tile(macros: dict) -> html.Div:
             # the header row
             html.Div(
                 className="tile_header",
-                children=[
-                    html.Div(className="module_name", children=["Macros"])
-                ],
+                children=[html.Div(className="module_name", children=["Macros"])],
             ),
             html.Div(
                 className="tile_pcomms",
@@ -183,13 +175,9 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
             html.Div(
                 className="tile_header",
                 children=[
-                    html.Div(
-                        className="module_name", children=[f"{module.name}"]
-                    ),
+                    html.Div(className="module_name", children=[f"{module.name}"]),
                     html.Div(className="module_ip", children=[f"{module.ip}"]),
-                    html.Div(
-                        className="module_port", children=[f"{module.port}"]
-                    ),
+                    html.Div(className="module_port", children=[f"{module.port}"]),
                     html.Div(
                         className=f"module_type module_{module.type}",
                         children=[f"{module.type}:{module.near_port}"],

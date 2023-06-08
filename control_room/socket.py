@@ -8,7 +8,6 @@ MAX_CONNECT_RETRIES = 3
 
 
 def create_socket_client(host_ip: str, port: int) -> socket.socket:
-
     conn_try = 0
     while conn_try < MAX_CONNECT_RETRIES:
         try:
@@ -18,9 +17,7 @@ def create_socket_client(host_ip: str, port: int) -> socket.socket:
             logger.debug(f"Connected to: {host_ip=}, {port=}")
             break
         except ConnectionRefusedError:
-            logger.debug(
-                f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}"
-            )
+            logger.debug(f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}")
 
             # Close the socket and start fresh as otherwise
             # we will get a an Errno 22 in the second try
