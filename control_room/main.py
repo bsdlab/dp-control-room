@@ -19,7 +19,7 @@ from tests.resources.tmodule import get_dummy_modules
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-setup_cfg_path: str = "./configs/setup_cfg.toml"
+setup_cfg_path: str = "./configs/example_cfg.toml"
 
 
 def test_dummy(debug: bool = True):
@@ -86,7 +86,9 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
 
     connections = []
     log_server = psutil.Process(
-        subprocess.Popen("python -m control_room.utils.logserver", shell=True).pid
+        subprocess.Popen(
+            "python -m control_room.utils.logserver", shell=True
+        ).pid
     )
 
     try:
