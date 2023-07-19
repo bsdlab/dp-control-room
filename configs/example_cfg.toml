@@ -3,12 +3,12 @@
 # Leave this empty if no blocks should be started like this
 modules_root = '../'                                                            # path to the root if the modules
 
-# -------------------- Mockup Streamer --------------------------------------- 
-[python.modules.dareplane_mockup_streamer]                                      # names of a module to be used (folder name)
+-------------------- Mockup Streamer ---------------------------------------
+[python.modules.dp-mockup-streamer]                                      # names of a module to be used (folder name)
     type = 'io_data'
     port = 8082                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
-[python.modules.dareplane_mockup_streamer.kwargs]                               # kwargs to run the main script with
+[python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
     lsl_out_stream_name = 'mockup_EEG_stream'
     random_data = true
 
@@ -18,7 +18,7 @@ modules_root = '../'                                                            
 #     port = 8083
 #     ip = '127.0.0.1'
 # [python.modules.dareplane_spoc_decoding.kwargs]
-#     lsl_in_stream_name = 'mockup_EEG_stream'
+#     lsl_in_stream_name = 'mockup_EEG_stream'                                   # potential kwargs passed to the modules api.server call
 #     lsl_out_stream_name = 'spoc_control_signal'
 
 # -------------------- Controller  ----------------------------------------- 
@@ -30,10 +30,6 @@ modules_root = '../'                                                            
 #     lsl_in_stream_name = 'spoc_control_signal'
 #     lsl_out_stream_name = 'control_output_stream'
 
-# [python.modules.dareplane-rest-paradigm]
-#     type = 'paradigm'
-#     port = 8084
-#     ip = '127.0.0.1'
 
 [macros]
 
@@ -45,13 +41,13 @@ modules_root = '../'                                                            
     date_root = '../'
 [macros.start_streaming.cmds]
     # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dareplane_mockup_streamer', 'START']
-    com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+    com1 = ['dp-mockup-streamer', 'START']
+    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
 
 [macros.stop_streaming]
     name = 'STOP_STREAMING'
     description = 'start streaming'
 [macros.stop_streaming.cmds]
     # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dareplane_mockup_streamer', 'STOP']
-    com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+    com1 = ['dp-mockup-streamer', 'STOP']
+    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']

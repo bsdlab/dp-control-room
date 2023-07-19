@@ -14,10 +14,12 @@ def create_socket_client(host_ip: str, port: int) -> socket.socket:
             logger.debug(f"Trying connection to: {host_ip=}, {port=}")
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((host_ip, port))
-            logger.debug(f"Connected to: {host_ip=}, {port=}")
+            logger.debug(f"Connected to: {host_ip=}, {port=} using {s=}")
             break
         except ConnectionRefusedError:
-            logger.debug(f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}")
+            logger.debug(
+                f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}"
+            )
 
             # Close the socket and start fresh as otherwise
             # we will get a an Errno 22 in the second try

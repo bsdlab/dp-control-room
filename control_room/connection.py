@@ -1,14 +1,14 @@
 import select
 import time
-from socket import socket, SHUT_RDWR
-from subprocess import Popen
 from dataclasses import dataclass, field
 from pathlib import Path
+from socket import SHUT_RDWR, socket
+from subprocess import Popen
 from typing import Callable
 
-from control_room.utils.logging import logger
+from control_room.processes import close_child_processes, start_container
 from control_room.socket import create_socket_client
-from control_room.processes import start_container, close_child_processes
+from control_room.utils.logging import logger
 
 
 # This is designed for python, so maybe refactor later
@@ -32,7 +32,7 @@ class ModuleConnection:
             self.name,
             self.ip,
             self.port,
-            loglevel=self.loglevel,
+            self.loglevel,
             modules_root_path=self.module_root_path,
             start_kwargs=self.kwargs,
         )
