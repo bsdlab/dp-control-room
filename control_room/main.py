@@ -1,19 +1,15 @@
-import time
-
-from fire import Fire
-from pathlib import Path
-from waitress import serve
-
-import tomllib
 import subprocess
+import time
+import tomllib
+from pathlib import Path
+
 import psutil
-
-
-from control_room.utils.logging import logger
+from fire import Fire
+from waitress import serve
 
 from control_room.connection import ModuleConnection, ModuleConnectionExe
 from control_room.gui.app import build_app
-
+from control_room.utils.logging import logger
 from tests.resources.tmodule import get_dummy_modules
 
 logger.setLevel(10)

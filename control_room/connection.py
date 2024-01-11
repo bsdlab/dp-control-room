@@ -1,4 +1,3 @@
-import select
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,7 +52,15 @@ class ModuleConnection:
         # There might be a response / confirmation of the connetion
         try:
             self.socket_c.settimeout(1)
-            msg = self.socket_c.recv(2048 * 8)
+            # msg = self.socket_c.recv(2048 * 8)
+            fragments = []
+            while True:
+                chunk = socket.recv(1024)
+                if not chunk:
+                    break
+                fragments.append(chunk)
+            msg = b"".join(fragments)
+
             logger.debug(f"connection returned: {msg.decode()}")
             self.socket_c.settimeout(None)
         except ConnectionResetError as err:
