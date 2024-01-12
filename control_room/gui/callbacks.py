@@ -1,13 +1,13 @@
-import re
 import ast
-import orjson
 import json
-import pylsl
 import pdb
-
-from time import sleep
+import re
 from pathlib import Path
-from dash import Dash, html, ctx
+from time import sleep
+
+import orjson
+import pylsl
+from dash import Dash, ctx, html
 from dash.dependencies import Input, Output, State
 
 from control_room.connection import ModuleConnection
@@ -58,7 +58,9 @@ def add_json_verification_cb(
     """Check the json strings in each inbox"""
 
     model_input_ids = [
-        f"{mconn.name}|{pcomm}|input" for mconn in modules for pcomm in mconn.pcomms
+        f"{mconn.name}|{pcomm}|input"
+        for mconn in modules
+        for pcomm in mconn.pcomms
     ]
 
     if macros is not None:
@@ -110,7 +112,9 @@ def add_macros_sender(
     macros: dict,
 ) -> Dash:
     modules_dict = {module.name: module for module in modules}
-    macro_name_key_map = {v["name"]: k for k, v in macros.items() if k != "globals"}
+    macro_name_key_map = {
+        v["name"]: k for k, v in macros.items() if k != "globals"
+    }
     macro_buttons = {
         f"{mc['name']}": Input(f"{mc['name']}|button", "n_clicks")
         for k, mc in macros.items()
@@ -176,7 +180,8 @@ def add_macros_sender(
                     msg = msg + "|" + payload_str
 
                 logger.debug(
-                    f"Sending {msg=} to {module.name}@{module.ip}:" f"{module.port}"
+                    f"Sending {msg=} to {module.name}@{module.ip}:"
+                    f"{module.port}"
                 )
                 module.socket_c.sendall(msg.encode())
 
@@ -218,7 +223,9 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
         },
         state={
             "all_states": {
-                f"{mconn.name}|{pcomm}": State(f"{mconn.name}|{pcomm}|input", "value")
+                f"{mconn.name}|{pcomm}": State(
+                    f"{mconn.name}|{pcomm}|input", "value"
+                )
                 for mconn in modules
                 for pcomm in mconn.pcomms
             }
@@ -247,7 +254,8 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
                 msg = msg + "|" + json_payload
 
             logger.debug(
-                f"Sending {msg=} to {module.name}@{module.ip}:" f"{module.port}"
+                f"Sending {msg=} to {module.name}@{module.ip}:"
+                f"{module.port}"
             )
             module.socket_c.sendall(msg.encode())
 
@@ -256,7 +264,9 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
     return app
 
 
-def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) -> Dash:
+def add_stats_update(
+    app: Dash, logfile: Path, modules: list[ModuleConnection]
+) -> Dash:
     mod_outputs = [Output(f"{m.name}_check_box", "className") for m in modules]
 
     @app.callback(
@@ -268,14 +278,16 @@ def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) 
         inputs=[Input("interval_3s", "n_intervals")],
     )
     def print_setting(n):
-        lsl_stream_msg = [html.P("> " + s.name()) for s in pylsl.resolve_streams()]
+        lsl_stream_msg = [
+            html.P("> " + s.name()) for s in pylsl.resolve_streams()
+        ]
 
         # there is far mre officient ways of reading tail
         # but for now this is sufficient (500us at 100k)
         if logfile.exists():
-            log_str_msg = [html.P(ll) for ll in open(logfile, "r").readlines()[-25:]][
-                ::-1
-            ]
+            log_str_msg = [
+                html.P(ll) for ll in open(logfile, "r").readlines()[-25:]
+            ][::-1]
         else:
             log_str_msg = f"No logfile at {logfile}"
 

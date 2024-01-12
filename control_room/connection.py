@@ -55,7 +55,7 @@ class ModuleConnection:
             # msg = self.socket_c.recv(2048 * 8)
             fragments = []
             while True:
-                chunk = socket.recv(1024)
+                chunk = self.socket_c.recv(1024)
                 if not chunk:
                     break
                 fragments.append(chunk)
@@ -73,7 +73,9 @@ class ModuleConnection:
                 f"No response upon connection for {self.name=} - {err=}"
             )
         except Exception as err:
-            logger.debug(f"Other error upon connection for {self.name=}")
+            logger.debug(
+                f"Other error upon connection for {self.name=}, {err=}"
+            )
             raise err
 
     def stop_process(self):

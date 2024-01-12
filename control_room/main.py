@@ -1,4 +1,5 @@
 import subprocess
+import threading
 import time
 import tomllib
 from pathlib import Path
@@ -7,6 +8,7 @@ import psutil
 from fire import Fire
 from waitress import serve
 
+from control_room.callbacks import CallbackBroker
 from control_room.connection import ModuleConnection, ModuleConnectionExe
 from control_room.gui.app import build_app
 from control_room.utils.logging import logger
@@ -86,6 +88,7 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
             "python -m control_room.utils.logserver", shell=True
         ).pid
     )
+    cbb_th = None
 
     try:
         # Other modules
@@ -109,6 +112,22 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
             # request primary commands
             conn.get_pcommands()
 
+        # hook up the callback broker
+        logger.debug("Starting CallbackBroker thread")
+        cbb_stop = threading.Event()
+        cbb_stop.clear()
+
+        # prepare the connection socket timeouts to be quicker
+        for c in connections:
+            c.socket_c.settimeout(0.001)
+
+        cbb = CallbackBroker(
+            mod_connections={c.name: c for c in connections},
+            stop_event=cbb_stop,
+        )
+        cbb_th = threading.Thread(target=cbb.listen_for_callbacks)
+        cbb_th.start()
+
         # Create the dash app
         app = build_app(connections, macros=cfg.get("macros", None))
 
@@ -123,7 +142,15 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
         serve(app.server, port=8050)
 
     finally:
+        if cbb_th:
+            logger.debug("Stopping callback broker")
+            cbb_stop.set()
+            cbb_th.join()
+
+        logger.debug("Closing down connections")
         close_down_connections(connections)
+
+        logger.debug("Terminating log server")
         log_server.terminate()
         time.sleep(0.1)
 

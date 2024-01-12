@@ -21,18 +21,26 @@ class CallbackBroker:
 
     def listen_for_callbacks(self):
         while not self.stop_event.is_set():
+            # TODO: This loop could be a performance bottleneck, if multiple
+            # modules need to be checked --> potentially create a whitelist
+            # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
                 self.check_for_callback(mod_connection.socket_c)
 
-    def check_for_callback(self, socket: socket):
+    def check_for_callback(self, msocket: socket):
         """Read from the"""
-
+        # logger.debug(f"Checking for callbacks in {msocket=}")
         fragments = []
         while True:
-            chunk = socket.recv(1024)
-            if not chunk:
+            try:
+                chunk = msocket.recv(1024)
+                if not chunk:
+                    break
+                fragments.append(chunk)
+            # break in case of timeout
+            except TimeoutError:
                 break
-            fragments.append(chunk)
+
         msg = b"".join(fragments)
 
         # ignore fully black messages and common start bytes
@@ -40,6 +48,7 @@ class CallbackBroker:
         msg = msg.replace(b"\xc2", b"")
 
         if msg != b"":
+            logger.debug(f"Received callback {msg=}")
             msg_arr = msg.decode("ascii").split("|")
 
             if len(msg_arr) != 3:
@@ -51,11 +60,22 @@ class CallbackBroker:
             else:
                 target_module_name, pcomm, payload = msg_arr
 
+                # Assert that the target module is registered
                 if target_module_name not in self.mod_connections.keys():
                     logger.error(
                         "CallbackBroker received a message for a module that "
                         f"is not registered: {target_module_name}"
                     )
+                # Assert that the target module supports the PCOMM
+                elif (
+                    pcomm
+                    not in self.mod_connections[target_module_name].pcomms
+                ):
+                    logger.error(
+                        "CallbackBroker received a message for a module that "
+                        f"does not support the PCOMM: {pcomm}"
+                    )
                 else:
                     trg_mod = self.mod_connections[target_module_name]
-                    trg_mod.pcomms[pcomm](payload)
+                    cmd = pcomm + "|" + payload
+                    trg_mod.socket_c.sendall(cmd.encode())
