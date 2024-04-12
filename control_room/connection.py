@@ -15,7 +15,9 @@ from control_room.utils.logging import logger
 @dataclass
 class ModuleConnection:
     name: str
-    type: str = ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
+    type: str = (
+        ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
+    )
     port: int = 0  # the port at the server
     near_port: int = 0  # the port of the client
     ip: str = "127.0.0.1"
