@@ -14,7 +14,9 @@ from control_room.utils.logging import logger
 @dataclass
 class ModuleConnection:
     name: str
-    type: str = ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
+    type: str = (
+        ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
+    )
     port: int = 0  # the port at the server
     near_port: int = 0  # the port of the client
     ip: str = "127.0.0.1"
@@ -108,9 +110,11 @@ class ModuleConnection:
     def get_pcommands(self):
         """Populate self.pcommands as a list of possible commands"""
 
+        logger.debug(f"Getting PCOMMS from {self.name}")
         self.socket_c.sendall(b"GET_PCOMMS")
         time.sleep(0.1)  # allow for processing on the server
         # logger.debug(f"Reading for receive")
+
         msg = self.socket_c.recv(2048 * 8)
         logger.debug(f"Received msg for pcommands: {msg.decode()}")
         self.pcomms = msg.decode().split("|")
