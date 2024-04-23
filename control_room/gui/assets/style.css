@@ -14,6 +14,10 @@
     brightness(103%) contrast(100%);
   --module_not_ready: #ffaaaa;
   --module_ready: #aaffaa;
+  --log_debug: #eee;
+  --log_info: #aaffaa;
+  --log_warn: #ffcc88;
+  --log_error: #ff8888;
 }
 
 @import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
@@ -105,8 +109,8 @@ body {
 }
 
 #logfile_title::before {
-  content: ' ';
-  background-image: url('assets/images/log-file-format-svgrepo-com.svg');
+  content: " ";
+  background-image: url("assets/images/log-file-format-svgrepo-com.svg");
   filter: var(--filter_header_color);
 }
 
@@ -126,6 +130,19 @@ body {
 #logfile_data P {
   margin: 0.2rem;
 }
+#logfile_data .DEBUG {
+  color: var(--log_debug);
+}
+#logfile_data .INFO {
+  color: var(--log_info);
+}
+#logfile_data .WARN {
+  color: var(--log_warn);
+}
+#logfile_data .ERROR {
+  color: var(--log_error);
+}
+
 #lsl_streams_list P {
   margin: 0.2rem;
 }
@@ -152,26 +169,26 @@ body {
 }
 
 .tile_header .module_ip::after {
-  content: ':';
+  content: ":";
 }
 .tile_header .module_port {
   margin-right: 1rem;
 }
 
 .tile_header .module_type::before {
-  content: '(';
+  content: "(";
 }
 .tile_header .module_type::after {
-  content: ')';
+  content: ")";
 }
 .tile_header .module_control::before {
-  content: '(';
+  content: "(";
 }
 .tile_header .module_decoding::before {
-  content: '(';
+  content: "(";
 }
 .tile_header .module_io_data::before {
-  content: '(';
+  content: "(";
 }
 
 .tile_header {
