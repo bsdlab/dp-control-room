@@ -26,9 +26,9 @@ class CallbackBroker:
             # modules need to be checked --> potentially create a whitelist
             # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
-                self.check_for_callback(mod_connection.socket_c)
+                self.check_for_callback(mod_connection.socket_c, mod_name)
 
-    def check_for_callback(self, msocket: socket):
+    def check_for_callback(self, msocket: socket, mod_name: str):
         """Read from the"""
         # logger.debug(f"Checking for callbacks in {msocket=}")
         fragments = []
@@ -51,6 +51,7 @@ class CallbackBroker:
         if msg != b"":
             logger.debug(f"Received callback {msg=}")
             msg_arr = msg.decode("ascii").split("|")
+            logger.info(f"{msg_arr=}")
 
             if len(msg_arr) != 3:
                 logger.error(
@@ -78,7 +79,9 @@ class CallbackBroker:
                     )
                 else:
                     trg_mod = self.mod_connections[target_module_name]
-                    if trg_mod == "dareplane-ao-communication":
+
+                    if trg_mod.name.startswith("dareplane-ao-communication"):
                         payload = make_ao_payload_from_json(payload)
+
                     cmd = pcomm + "|" + payload
                     trg_mod.socket_c.sendall(cmd.encode())

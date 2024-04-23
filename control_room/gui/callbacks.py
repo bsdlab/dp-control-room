@@ -363,4 +363,5 @@ def make_ao_payload_from_json(json_payload: str | None) -> str | None:
 
     # For the json to be valid, we need double backslashes, for AO however, it needs to be single
     lstr = lstr.replace("\\\\", "\\")
+
     return lstr

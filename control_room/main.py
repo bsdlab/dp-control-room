@@ -17,7 +17,9 @@ from tests.resources.tmodule import get_dummy_modules
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-setup_cfg_path: str = "./configs/example_cfg.toml"
+# setup_cfg_path: str = "./configs/example_cfg.toml"
+# setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
+setup_cfg_path: str = "./configs/test_mockup_bollinger_AO.toml"
 
 
 def test_dummy(debug: bool = True):
@@ -124,6 +126,9 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
         cbb = CallbackBroker(
             mod_connections={c.name: c for c in connections},
             stop_event=cbb_stop,
+        )
+        logger.info(
+            f"CallbackBroker has following modules connected: {list[cbb.mod_connections.keys()]}"
         )
         cbb_th = threading.Thread(target=cbb.listen_for_callbacks)
         cbb_th.start()
