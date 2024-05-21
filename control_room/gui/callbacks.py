@@ -15,6 +15,10 @@ from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
 
 
+class PayloadError(KeyError):
+    pass
+
+
 def add_callbacks(
     app: Dash, modules: list[ModuleConnection], macros: dict | None = None
 ) -> Dash:
@@ -94,12 +98,12 @@ def add_json_verification_cb(
             try:
                 orjson.loads(str(inp))
                 rets[idxinp] = "valid_json_input"
-                logger.debug(f"{inp=} is valid")
+                # logger.debug(f"{inp=} is valid")
             # except Exception as e:
             # print(f">>>>> {e=}")
             except orjson.JSONDecodeError:
                 rets[idxinp] = "invalid_json_input"
-                logger.debug(f"{inp=} is invalid")
+                # logger.debug(f"{inp=} is invalid")
 
         return rets
 
@@ -154,19 +158,25 @@ def add_macros_sender(
             else:
                 m_kwargs = {}
 
-            logger.debug(f"Details: {m_name=}, {mc=}, {m_kwargs=}")
+            logger.debug(f"Macro details: {m_name=}, {mc=}, {m_kwargs=}")
 
             for cmn, cm_list in mc["cmds"].items():
                 if sleep_s:
-                    print(f">>>>>>>> SLEEPING FOR {sleep_s=}")
+                    logger.debug(f"Sleeping for {sleep_s=}")
                     sleep(sleep_s)
 
                 module = modules_dict[cm_list[0]]
+
                 msg = cm_list[1]
 
                 json_payload = {}
                 for mapping in cm_list[2:]:
                     k2, k1 = mapping.split("=")
+                    if k1 not in m_kwargs.keys():
+                        error_msg = f"Key '{k1}' not in provided payload"
+                        logger.error(error_msg)
+                        raise PayloadError(error_msg)
+
                     json_payload[k2] = m_kwargs[k1]
 
                 if json_payload != {}:
@@ -183,6 +193,11 @@ def add_macros_sender(
                     f"Sending {msg=} to {module.name}@{module.ip}:"
                     f"{module.port}"
                 )
+                if ";" in msg:
+                    logger.error(
+                        f"Found a semi-colon in {msg=} - this is a reserver character please use characters other than `;`"
+                    )
+                msg = msg + ";"  # add semi-colon to separate commands
                 module.socket_c.sendall(msg.encode())
 
                 msgs += msg
@@ -242,6 +257,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
 
             # TODO - think of a way to validate the string (potentially a different callback) which is triggered upon entering the text values # noqa
             json_payload = all_states[f"{mod_name}|{pcomm_name}"]
+            logger.debug(f"module button {json_payload=}")
 
             if json_payload is not None and mod_name.startswith(
                 "dareplane-ao-communication"
@@ -285,9 +301,22 @@ def add_stats_update(
         # there is far mre officient ways of reading tail
         # but for now this is sufficient (500us at 100k)
         if logfile.exists():
-            log_str_msg = [
-                html.P(ll) for ll in open(logfile, "r").readlines()[-25:]
-            ][::-1]
+
+            log_str_msg = []
+
+            with open(logfile, "r") as logf:
+                lines = logf.readlines()[-25:]
+                for logline in lines:
+
+                    llevel = re.search(r"(DEBUG|INFO|WARNING|ERROR)", logline)
+                    log_level = llevel.group(1) if llevel else "DEBUG"
+
+                    # log_level is used for coloring with css, use DEBUG as default
+                    log_str_msg.append(
+                        html.P(logline, className=f"{log_level}")
+                    )
+
+            log_str_msg = log_str_msg[::-1]
         else:
             log_str_msg = f"No logfile at {logfile}"
 
@@ -334,4 +363,5 @@ def make_ao_payload_from_json(json_payload: str | None) -> str | None:
 
     # For the json to be valid, we need double backslashes, for AO however, it needs to be single
     lstr = lstr.replace("\\\\", "\\")
+
     return lstr

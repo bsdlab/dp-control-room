@@ -6,13 +6,26 @@ modules_root = '../'                                                            
 # -------------------- Mockup Streamer ---------------------------------------
 [python.modules.dp-mockup-streamer]                                      # names of a module to be used (folder name)
     type = 'io_data'
-    port = 8082                                                                 # if no port is provided, a random free port is chosen
+    port = 8081                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
 [python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
     lsl_out_stream_name = 'mockup_EEG_stream'
-    random_data = true
+    # random_data = true --> use the start random button!
 
-# # -------------------- SPoC Decoder  -----------------------------------------
+# -------------------- Pass through decoding -> add a callback ----------------
+[python.modules.dp-passthrough]                                      # names of a module to be used (folder name)
+    type = 'pass_through'
+    port = 8083                                                                 # if no port is provided, a random free port is chosen
+    ip = '127.0.0.1'
+
+
+[python.modules.dp-echo]                                      # names of a module to be used (folder name)
+    type = 'echo'
+    port = 8082                                                                 # if no port is provided, a random free port is chosen
+    ip = '127.0.0.1'
+
+
+# -------------------- SPoC Decoder  ----------------------------------------
 # [python.modules.dareplane_spoc_decoding]                                        # names of a module to be used (folder name)
 #     type = 'decoding'
 #     port = 8083

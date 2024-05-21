@@ -1,10 +1,10 @@
-import time
-import psutil
 import subprocess
-
+import time
+from pathlib import Path
 from sys import exception, platform
 
-from pathlib import Path
+import psutil
+
 from control_room.utils.logging import logger
 
 # Used to separate multiple shell commands in one string

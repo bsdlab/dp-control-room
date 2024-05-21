@@ -1,4 +1,3 @@
-import select
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,7 +54,15 @@ class ModuleConnection:
         # There might be a response / confirmation of the connetion
         try:
             self.socket_c.settimeout(1)
-            msg = self.socket_c.recv(2048 * 8)
+            # msg = self.socket_c.recv(2048 * 8)
+            fragments = []
+            while True:
+                chunk = self.socket_c.recv(1024)
+                if not chunk:
+                    break
+                fragments.append(chunk)
+            msg = b"".join(fragments)
+
             logger.debug(f"connection returned: {msg.decode()}")
             self.socket_c.settimeout(None)
         except ConnectionResetError as err:
@@ -68,7 +75,9 @@ class ModuleConnection:
                 f"No response upon connection for {self.name=} - {err=}"
             )
         except Exception as err:
-            logger.debug(f"Other error upon connection for {self.name=}")
+            logger.debug(
+                f"Other error upon connection for {self.name=}, {err=}"
+            )
             raise err
 
     def stop_process(self):
@@ -101,9 +110,11 @@ class ModuleConnection:
     def get_pcommands(self):
         """Populate self.pcommands as a list of possible commands"""
 
+        logger.debug(f"Getting PCOMMS from {self.name}")
         self.socket_c.sendall(b"GET_PCOMMS")
         time.sleep(0.1)  # allow for processing on the server
         # logger.debug(f"Reading for receive")
+
         msg = self.socket_c.recv(2048 * 8)
         logger.debug(f"Received msg for pcommands: {msg.decode()}")
         self.pcomms = msg.decode().split("|")
