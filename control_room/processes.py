@@ -1,7 +1,7 @@
 import subprocess
 import time
 from pathlib import Path
-from sys import exception, platform
+from sys import platform
 
 import psutil
 

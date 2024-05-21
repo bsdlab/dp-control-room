@@ -1,7 +1,6 @@
 import subprocess
 import threading
 import time
-import tomllib
 from pathlib import Path
 
 import psutil
@@ -14,16 +13,36 @@ from control_room.gui.app import build_app
 from control_room.utils.logging import logger
 from tests.resources.tmodule import get_dummy_modules
 
+# --- For backwards compatibility with python < 3.11
+try:
+    import tomllib
+
+    def toml_load(file: Path):
+        return tomllib.load(open(file, "rb"))
+
+except ImportError:
+    try:
+        import toml
+
+        def toml_load(file: Path):
+            return toml.load(open(file, "r"))
+
+    except ImportError:
+        raise ImportError(
+            "Please install either use python > 3.11 or install `toml` library"
+            "to able to parse the config files."
+        )
+
+
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-# setup_cfg_path: str = "./configs/example_cfg.toml"
+setup_cfg_path: str = "./configs/example_cfg.toml"
 # setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
-setup_cfg_path: str = "./configs/test_mockup_bollinger_AO.toml"
 
 
 def test_dummy(debug: bool = True):
-    cfg = tomllib.load(open(setup_cfg_path, "r"))
+    cfg = toml_load(setup_cfg_path)
     modules = get_dummy_modules()
     for m in modules:
         m.get_pcommands()
@@ -82,7 +101,8 @@ def close_down_connections(mod_connections: list[ModuleConnection]):
 
 
 def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
-    cfg = tomllib.load(open(setup_cfg_path, "rb"))
+    # cfg = tomllib.load(open(setup_cfg_path, "rb"))
+    cfg = toml_load(setup_cfg_path)
 
     connections = []
     log_server = psutil.Process(
