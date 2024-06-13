@@ -37,7 +37,7 @@ except ImportError:
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-setup_cfg_path: str = "./configs/example_cfg.toml"
+setup_cfg_path: str = "./configs/copydraw_only_bv.toml"
 # setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
 
 

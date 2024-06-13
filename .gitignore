@@ -152,3 +152,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+configs/
+!configs/example_cfg.toml
+
