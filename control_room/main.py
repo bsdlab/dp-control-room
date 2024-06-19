@@ -37,7 +37,9 @@ except ImportError:
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-setup_cfg_path: str = "./configs/copydraw_only_bv.toml"
+setup_cfg_path: str = "./configs/copydraw_only.toml"
+# setup_cfg_path: str = "./configs/copydraw_bv_and_ao.toml"
+# setup_cfg_path: str = "./configs/closed_loop_copydraw_bv_and_ao.toml"
 # setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
 
 
@@ -116,7 +118,9 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
         # Other modules
         if "exe" in cfg.keys():
             connections += initialize_exe_modules(cfg["exe"])
-        connections += initialize_python_modules(cfg["python"])
+
+        if "python" in cfg.keys():
+            connections += initialize_python_modules(cfg["python"])
 
         # start the module servers - spawning the processes
         for conn in connections:
@@ -161,7 +165,7 @@ def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
         # Use the test_dummy for GUI development instead
 
         # for the debugging Flask server
-        # app.run_server(debug=False)
+        # app.run_server(debug=True)
 
         # for a lightweight production server
         serve(app.server, port=8050)

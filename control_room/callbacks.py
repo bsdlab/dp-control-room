@@ -80,7 +80,7 @@ class CallbackBroker:
                 else:
                     trg_mod = self.mod_connections[target_module_name]
 
-                    if trg_mod.name.startswith("dareplane-ao-communication"):
+                    if trg_mod.name.startswith("dp-ao-communication"):
                         payload = make_ao_payload_from_json(payload)
 
                     cmd = pcomm + "|" + payload

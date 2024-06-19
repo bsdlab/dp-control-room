@@ -182,9 +182,9 @@ def add_macros_sender(
                 if json_payload != {}:
                     payload_str = json.dumps(json_payload).replace("'", '"')
 
-                    if json_payload is not None and module.name.startswith(
-                        "dareplane-ao-communication"
-                    ):
+                    # TODO: Properly refactor the AO module that this extra
+                    # handling is no longer needed!
+                    if json_payload is not None and "ao-communication" in module.name:
                         payload_str = make_ao_payload_from_json(payload_str)
 
                     msg = msg + "|" + payload_str
@@ -195,10 +195,16 @@ def add_macros_sender(
                 )
                 if ";" in msg:
                     logger.error(
-                        f"Found a semi-colon in {msg=} - this is a reserver character please use characters other than `;`"
+                        f"Found a semi-colon in {msg=} - this is a reserved character please use characters other than `;`"
                     )
-                msg = msg + ";"  # add semi-colon to separate commands
-                module.socket_c.sendall(msg.encode())
+                if "ao-communication" in module.name:
+                    # keep the old message structure until the AO module
+                    # is properly integrated
+                    module.socket_c.sendall(msg.encode())
+                    msg = msg + ";" 
+                else:
+                    msg = msg + ";"  # add semi-colon to separate commands
+                    module.socket_c.sendall(msg.encode())
 
                 msgs += msg
 
@@ -259,9 +265,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
             json_payload = all_states[f"{mod_name}|{pcomm_name}"]
             logger.debug(f"module button {json_payload=}")
 
-            if json_payload is not None and mod_name.startswith(
-                "dareplane-ao-communication"
-            ):
+            if json_payload is not None and "ao-communication" in module.name:
                 json_payload = make_ao_payload_from_json(json_payload)
                 # import pdb
                 # pdb.set_trace()
@@ -302,9 +306,12 @@ def add_stats_update(
         # but for now this is sufficient (500us at 100k)
         if logfile.exists():
 
+            # The version with paragraphs to a list failed - stop it for now
+            # as it would only add color to the GUI
             log_str_msg = []
 
             with open(logfile, "r") as logf:
+                # logger.debug("Trying to add colored log")
                 lines = logf.readlines()[-25:]
                 for logline in lines:
 
@@ -319,6 +326,7 @@ def add_stats_update(
             log_str_msg = log_str_msg[::-1]
         else:
             log_str_msg = f"No logfile at {logfile}"
+
 
         # check corrent up state
         mod_class_names = []
@@ -339,6 +347,7 @@ def add_stats_update(
         #         logger.debug(f"Failed communicating with {m.name} @ {m.ip}"
         #                      f":{m.port} - {e=}")
         #         mod_class_names.append(classes['fail'])
+        #
 
         return [lsl_stream_msg, log_str_msg] + mod_class_names
 
