@@ -37,10 +37,10 @@ except ImportError:
 logger.setLevel(10)
 
 # --- Here you would specify which config to use
-setup_cfg_path: str = "./configs/copydraw_only.toml"
+# setup_cfg_path: str = "./configs/copydraw_only.toml"
 # setup_cfg_path: str = "./configs/copydraw_bv_and_ao.toml"
 # setup_cfg_path: str = "./configs/closed_loop_copydraw_bv_and_ao.toml"
-# setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
+setup_cfg_path: str = "./configs/movingdots_ao_exg.toml"
 
 
 def test_dummy(debug: bool = True):
