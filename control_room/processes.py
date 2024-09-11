@@ -61,7 +61,7 @@ def start_container(
     cmd = (
         f"cd {modpath.resolve()}{COMMAND_SEP_MAP[platform]} "
         "python -m api.server "
-        f"--port={port} --ip={ip} --logleve={loglevel}"
+        f"--port={port} --ip={ip} --loglevel={loglevel}"
         + " "
         + " ".join([f"--{k}={v}" for k, v in start_kwargs.items()])
     )
