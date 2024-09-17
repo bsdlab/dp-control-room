@@ -216,7 +216,7 @@ def get_pcomm_button_input_pair(
 ) -> html.Div:
     # logger.debug(f"Building button input for {pcomm_name=} {mod_name=}")
     defaults = ""
-    if mod_name == "dareplane-ao-communication":
+    if "ao-communication" in mod_name:
         defaults = conn.pcomms_defaults[pcomm_name]
 
     return html.Div(
