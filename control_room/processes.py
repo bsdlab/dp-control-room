@@ -16,7 +16,7 @@ COMMAND_SEP_MAP = {
 }
 
 
-def close_child_processes(process: subprocess.Popen):
+def close_child_processes(process: subprocess.Popen) -> int:
     """Close all child processes of a Popen instance"""
     parent_ps = psutil.Process(process.pid)
     max_iter = 5
@@ -35,6 +35,11 @@ def close_child_processes(process: subprocess.Popen):
             break
 
         i += 1
+
+    logger.debug(f"Sending kill to parent process={parent_ps}")
+    parent_ps.kill()
+
+    return 0
 
 
 def start_container(

@@ -124,11 +124,13 @@ def test_subprocess(module_connection_with_running_process):
     hostp = psutil.Process(host_pid)
 
     con.stop_process()
+    time.sleep(0.5)
 
     # Second condition added for testing on windows
-    assert con.host_process is None and not psutil.pid_exists(host_pid)
-
-    breakpoint()
+    try:
+        assert con.host_process is None and hostp.status() == "zombie"
+    finally:
+        hostp.kill()
 
     logger.info(f"{hostp=}")
 

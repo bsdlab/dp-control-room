@@ -81,8 +81,9 @@ class ModuleConnection:
 
     def stop_process(self):
         if self.host_process:
-            close_child_processes(self.host_process)
-        self.host_process = None
+            closed = close_child_processes(self.host_process)
+            if closed == 0:
+                self.host_process = None
 
     # Just have this method to have a consistent name with stop_process
     def stop_socket_c(self):
