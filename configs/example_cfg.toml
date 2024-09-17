@@ -23,6 +23,7 @@ modules_root = '../'                                                            
     type = 'echo'
     port = 8082                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
+    retry_connection_after_s = 2                                                # For modules with a slow start-up time, you might want to increase the time between conncetion attempts, default is 1s and 3 connection attempts
 
 
 # -------------------- SPoC Decoder  ----------------------------------------

@@ -1,11 +1,13 @@
-import pytest
-import psutil
 import threading
+import time
 
-from tests.resources.tserver import run_server
+import psutil
+import pytest
+
 from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
 from tests.resources.tmodule import start_container
+from tests.resources.tserver import run_server, run_slow_startup_server
 
 logger.setLevel(10)
 
@@ -43,6 +45,52 @@ def test_socket_connection(module_with_thread_for_tserver):
 
 
 @pytest.fixture
+def slow_server_thread() -> tuple[threading.Thread, threading.Event]:
+
+    sev = threading.Event()
+    thread = threading.Thread(
+        target=run_slow_startup_server,
+        kwargs=dict(ip="127.0.0.1", port=5051, stop_event=sev),
+    )
+
+    yield thread, sev
+
+    sev.set()
+    thread.join()
+
+
+def test_retry_connection_after_s_for_slow_startup(slow_server_thread):
+    thread, sev = slow_server_thread
+    thread.start()
+
+    # Quick connection should fail
+    with pytest.raises(OSError):
+        conq = ModuleConnection(
+            name="test_slow", ip="127.0.0.1", port=5051, retry_connection_after_s=0.3
+        )
+        conq.start_socket_client()
+
+    # slow start-up takes 5 seconds -> 3 seconds for retry with 3 retries should be enough
+    con = ModuleConnection(
+        name="test_slow", ip="127.0.0.1", port=5051, retry_connection_after_s=3
+    )
+
+    con.start_socket_client()
+
+    con.get_pcommands()
+
+    time.sleep(0.5)  # wait a bit to ensure response arrived
+
+    # Close before assert could break the test
+    con.socket_c.sendall(b"CLOSE\r\n")
+    con.stop_socket_c()
+
+    assert (
+        "SLOWSERVERTEST" in con.pcomms
+    ), f"Did not get the expected pcomms from the server - {con.pcomms=}"
+
+
+@pytest.fixture
 def module_connection_with_running_process():
     # setup
     con = ModuleConnection(
@@ -63,6 +111,7 @@ def module_connection_with_running_process():
         host_pid = con.host_process.pid
         hostp = psutil.Process(host_pid)
         hostp.kill()
+
     except (psutil.NoSuchProcess, AttributeError):
         logger.debug(f"Process {con.host_process=} already killed?")
 
@@ -77,7 +126,9 @@ def test_subprocess(module_connection_with_running_process):
     con.stop_process()
 
     # Second condition added for testing on windows
-    assert con.host_process is None or not psutil.pid_exists(host_pid)
+    assert con.host_process is None and not psutil.pid_exists(host_pid)
+
+    breakpoint()
 
     logger.info(f"{hostp=}")
 

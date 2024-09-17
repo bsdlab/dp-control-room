@@ -27,6 +27,7 @@ class ModuleConnection:
     pcomms: list = field(default_factory=list)
     container_starter: Callable = start_container
     loglevel: int = 10
+    retry_connection_after_s: float = 1
 
     def start_module_server(self):
         self.host_process = self.container_starter(
@@ -39,10 +40,12 @@ class ModuleConnection:
         )
 
     def start_socket_client(self):
-        logger.debug(
-            f"{self.name=} - connecting socket to " f"{self.ip}:{self.port}"
+        logger.debug(f"{self.name=} - connecting socket to " f"{self.ip}:{self.port}")
+        self.socket_c = create_socket_client(
+            host_ip=self.ip,
+            port=self.port,
+            retry_connection_after_s=self.retry_connection_after_s,
         )
-        self.socket_c = create_socket_client(host_ip=self.ip, port=self.port)
 
         # Time-out as non of the sockets should block indefinitely
         self.socket_c.setblocking(0)
@@ -71,13 +74,9 @@ class ModuleConnection:
             )
             raise err
         except TimeoutError as err:
-            logger.debug(
-                f"No response upon connection for {self.name=} - {err=}"
-            )
+            logger.debug(f"No response upon connection for {self.name=} - {err=}")
         except Exception as err:
-            logger.debug(
-                f"Other error upon connection for {self.name=}, {err=}"
-            )
+            logger.debug(f"Other error upon connection for {self.name=}, {err=}")
             raise err
 
     def stop_process(self):
@@ -89,8 +88,7 @@ class ModuleConnection:
     def stop_socket_c(self):
         try:
             logger.debug(
-                f"{self.name} trying to gracefully shurtdown "
-                f"{self.socket_c}"
+                f"{self.name} trying to gracefully shurtdown " f"{self.socket_c}"
             )
             self.socket_c.shutdown(SHUT_RDWR)
         except OSError:
