@@ -10,7 +10,7 @@ modules_root = '../'                                                            
     ip = '127.0.0.1'
 [python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
     lsl_out_stream_name = 'mockup_EEG_stream'
-    # random_data = true --> use the start random button!
+    random_data = true --> use the start random button!
 
 # -------------------- Pass through decoding -> add a callback ----------------
 [python.modules.dp-passthrough]                                      # names of a module to be used (folder name)

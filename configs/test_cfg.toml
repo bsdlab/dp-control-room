@@ -3,13 +3,13 @@
 # Leave this empty if no blocks should be started like this
 modules_root = '../../nonrelease_dareplane/dp-reaction-time'                                                            # path to the root if the modules
 
--------------------- Mockup Streamer ---------------------------------------
+# -------------------- Mockup Streamer ---------------------------------------
 [python.modules.dp-reaction-time]                                      # names of a module to be used (folder name)
     type = 'reaction-time'
     port = 8082                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
 
--------------------- Controller  -----------------------------------------
+# -------------------- Controller  -----------------------------------------
 [python.modules.dp-lsl-recording]                                     # names of a module to be used (folder name)
     type = 'dataio'
     port = 8084
