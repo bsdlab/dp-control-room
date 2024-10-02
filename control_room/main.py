@@ -182,4 +182,4 @@ def run_control_room(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
 
 
 if __name__ == "__main__":
-    Fire(main)
+    Fire(run_control_room)
