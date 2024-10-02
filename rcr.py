@@ -1,3 +1,4 @@
-from control_room.main import main
+# Just for convenience of running it from the root dir
+from control_room.main import run_control_room
 
-main()
+run_control_room()

@@ -98,7 +98,7 @@ def close_down_connections(mod_connections: list[ModuleConnection]):
             conn.stop_process()
 
 
-def main(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
+def run_control_room(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
     cfg = toml_load(setup_cfg_path)
 
     connections = []
