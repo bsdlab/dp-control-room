@@ -5,11 +5,11 @@ quartodoc:
 
   title: "Documentation control room"
 
-  # write sidebar and style data -> where quartodoc writes its content without impacting quarto
-  sidebar:
-    file: "reference/_sidebar.yml"
-
-  css: reference/_styles-quartodoc.css
+  # # write sidebar and style data -> where quartodoc writes its content without impacting quarto
+  # sidebar:
+  #   file: "_sidebar.yml"
+  #
+  # css: _styles-quartodoc.css
 
   sections:
     - title: "Control room functionality"
