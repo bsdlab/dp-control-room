@@ -211,7 +211,7 @@ def evaluate_templates(d: dict) -> dict:
     replace them with the variable"""
     for k, v in d.items():
         if isinstance(v, str):
-            keys = re.findall("\$<([^>]*)>", v)
+            keys = re.findall(r"\$<([^>]*)>", v)
 
             for kk in keys:
                 v = v.replace(f"$<{kk}>", str(d[kk]))
