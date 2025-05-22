@@ -1,0 +1,74 @@
+quartodoc:
+  # the name used to import the package you want to create reference docs for
+  package: "dp-control-room"
+  source_dir: "control_room"
+
+  title: "Documentation control room"
+
+  # write sidebar and style data -> where quartodoc writes its content without impacting quarto
+  sidebar:
+    file: "reference/_sidebar.yml"
+
+  css: reference/_styles-quartodoc.css
+
+  sections:
+    - title: "Control room functionality"
+      desc: |
+        The control room is one way of composing Dareplane modules to experimental setups.
+        ![schematic_image](https://raw.githubusercontent.com/bsdlab/dp-control-room/refs/heads/main/assets/sketch_gui.svg)
+
+        :::{.callout-info}
+        The github repository for this module is located at:
+        [https://github.com/bsdlab/dp-control-room/tree/main](https://github.com/bsdlab/dp-control-room/tree/main)
+        :::
+
+    - subtitle: Main
+
+      package: control_room
+      desc: The main script to start and spawn the control_room.
+      contents:
+        # the functions being documented in the package.
+        # you can refer to anything: class methods, modules, etc..
+        - main
+
+    - subtitle: UI
+      desc: UI components implemented in [`dash`](https://dash.plotly.com/) are the core of the control room.
+      package: control_room
+      contents:
+        # the functions being documented in the package.
+        # you can refer to anything: class methods, modules, etc..
+        - gui.app
+        - gui.callbacks
+        - gui.layout
+
+    - subtitle: Process management
+      desc: |
+        The control_room spawns and manages the life-times of other python modules.
+
+      package: control_room
+      contents:
+        - processes
+        - connection
+        - socket
+    #
+    - subtitle: Inter module communication
+      desc: |
+        The control_room also routes control_room callbacks, which allow intermodule communication if this is not
+        solved by using something like LSL.
+
+      package: control_room
+      contents:
+        - callbacks
+
+    - subtitle: Logging
+      desc: |
+        Utils of the control_room concern mainly logging. This relates to providing a TCP that listenes on the standard
+        port for python logging (9020), and therefore consolidates all logging messages shared this way. E.g., when using
+        [`dareplane-utils`](https://github.com/matthiasdold/dareplane-pyutils) and the `from dareplane_utils.logging.logger import get_logger`.
+
+      package: control_room
+      contents:
+        - utils.logging
+        - utils.logserver
+    #
+    #
