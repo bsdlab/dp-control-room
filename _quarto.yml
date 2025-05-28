@@ -1,3 +1,17 @@
+project:
+  type: website
+
+website:
+  sidebar:
+    - id: "main"
+      contents:
+        - section: "Documentation"
+          contents:
+            - reference/index.qmd
+
+metadata-files:
+  - reference/_control_room_sidebar.yml
+
 quartodoc:
   # the name used to import the package you want to create reference docs for
   package: "dp-control-room"
@@ -6,8 +20,8 @@ quartodoc:
   title: "Documentation control room"
 
   # # write sidebar and style data -> where quartodoc writes its content without impacting quarto
-  # sidebar:
-  #   file: "_sidebar.yml"
+  sidebar:
+    file: "reference/_control_room_sidebar.yml"
   #
   # css: _styles-quartodoc.css
 
@@ -19,7 +33,7 @@ quartodoc:
 
         :::{.callout-info}
         The github repository for this module is located at:
-        [https://github.com/bsdlab/dp-control-room/tree/main](https://github.com/bsdlab/dp-control-room/tree/main)
+        [https://github.com/bsdlab/dp-control-room/](https://github.com/bsdlab/dp-control-room/)
         :::
 
     - subtitle: Main
@@ -29,7 +43,10 @@ quartodoc:
       contents:
         # the functions being documented in the package.
         # you can refer to anything: class methods, modules, etc..
-        - main
+        - main.run_control_room
+        - main.close_down_connections
+        - main.initialize_python_modules
+        - main.initialize_exe_modules
 
     - subtitle: UI
       desc: UI components implemented in [`dash`](https://dash.plotly.com/) are the core of the control room.
@@ -37,9 +54,17 @@ quartodoc:
       contents:
         # the functions being documented in the package.
         # you can refer to anything: class methods, modules, etc..
-        - gui.app
-        - gui.callbacks
-        - gui.layout
+        - gui.app.build_app
+        - gui.callbacks.add_json_verification_cb
+        - gui.callbacks.add_macros_sender
+        - gui.callbacks.evaluate_templates
+        - gui.callbacks.add_pcomm_sender
+        - gui.layout.get_layout
+        - gui.layout.create_macro_tile
+        - gui.layout.get_macro_button_input_pair
+        - gui.layout.get_log_stream_tile
+        - gui.layout.get_module_tile_layout
+        - gui.layout.get_pcomm_button_input_pair
 
     - subtitle: Process management
       desc: |
@@ -47,7 +72,8 @@ quartodoc:
 
       package: control_room
       contents:
-        - processes
+        - processes.close_child_processes
+        - processes.start_container
         - connection
         - socket
     #
@@ -58,17 +84,10 @@ quartodoc:
 
       package: control_room
       contents:
-        - callbacks
+        - callbacks.CallbackBroker
 
     - subtitle: Logging
       desc: |
         Utils of the control_room concern mainly logging. This relates to providing a TCP that listenes on the standard
         port for python logging (9020), and therefore consolidates all logging messages shared this way. E.g., when using
         [`dareplane-utils`](https://github.com/matthiasdold/dareplane-pyutils) and the `from dareplane_utils.logging.logger import get_logger`.
-
-      package: control_room
-      contents:
-        - utils.logging
-        - utils.logserver
-    #
-    #

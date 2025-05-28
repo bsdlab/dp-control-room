@@ -40,24 +40,32 @@ def add_callbacks(
     return app
 
 
-def test_button_bc(app):
-    @app.callback(
-        output=Output("last_macro_sent_div", "children"),
-        inputs=Input("START_RECORDINGS|button", "n_clicks"),
-    )
-    def print_pressed(all_btns):
-        msg = f"{all_btns=}"
-        logger.warning(msg)
-
-        return msg
-
-    return app
-
-
 def add_json_verification_cb(
     app: Dash, modules: list[ModuleConnection], macros: dict | None
 ) -> Dash:
-    """Check the json strings in each inbox"""
+    """
+    Add a callback to the Dash app to verify JSON strings in input fields.
+
+    This function sets up a callback that checks whether the input values in specified
+    input fields are valid JSON strings. It updates the class names of the input fields
+    based on the validity of the JSON, which should result in a color change.
+
+    Parameters
+    ----------
+    app : Dash
+        The Dash application to which the callback will be added.
+    modules : list[ModuleConnection]
+        A list of ModuleConnection objects representing the modules to be included
+        in the application.
+    macros : dict | None
+        A dictionary containing macro definitions to be used in the application.
+        If None, no macros are used.
+
+    Returns
+    -------
+    Dash
+        The Dash application with the added callback.
+    """
 
     model_input_ids = [
         f"{mconn.name}|{pcomm}|input" for mconn in modules for pcomm in mconn.pcomms
@@ -111,6 +119,30 @@ def add_macros_sender(
     modules: list[ModuleConnection],
     macros: dict,
 ) -> Dash:
+    """
+    Add a callbacks to dynamically to macro sections on a Dash app.
+
+    As macros are defined in the config file used to run the app, we do
+    not know their names and dash elements a priori. This function loops
+    over all macro sections and given their configs, add the appropriate
+    callback to execute the macro commands.
+
+
+    Parameters
+    ----------
+    app : Dash
+        The Dash application to which the callback will be added.
+    modules : list[ModuleConnection]
+        A list of ModuleConnection objects representing the modules to be included
+        in the application.
+    macros : dict
+        A dictionary containing macro definitions to be used in the application.
+
+    Returns
+    -------
+    Dash
+        The Dash application with the added callback.
+    """
     modules_dict = {module.name: module for module in modules}
     macro_name_key_map = {v["name"]: k for k, v in macros.items() if k != "globals"}
     macro_buttons = {
@@ -207,8 +239,10 @@ def add_macros_sender(
 
 
 def evaluate_templates(d: dict) -> dict:
-    """If a dictionary contains $<some_name> templates in its values,
-    replace them with the variable"""
+    """
+    If a dictionary contains $<some_name> templates in its values,
+    replace them with the variable
+    """
     for k, v in d.items():
         if isinstance(v, str):
             keys = re.findall(r"\$<([^>]*)>", v)
@@ -222,6 +256,26 @@ def evaluate_templates(d: dict) -> dict:
 
 
 def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
+    """
+    Add a callback to the Dash app to send pcomm commands to modules.
+
+    This function sets up a callback that sends pcomm commands to specified modules
+    based on user interactions. It handles the evaluation of pcomm templates and
+    sends the appropriate commands to the modules.
+
+    Parameters
+    ----------
+    app : Dash
+        The Dash application to which the callback will be added.
+    modules : list[ModuleConnection]
+        A list of ModuleConnection objects representing the modules to be included
+        in the application.
+
+    Returns
+    -------
+    Dash
+        The Dash application with the added callback.
+    """
     modules_dict = {module.name: module for module in modules}
 
     @app.callback(
@@ -274,6 +328,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
     return app
 
 
+# TODO: rework this
 def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) -> Dash:
     mod_outputs = [Output(f"{m.name}_check_box", "className") for m in modules]
 

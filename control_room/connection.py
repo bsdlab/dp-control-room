@@ -125,7 +125,7 @@ def noop(*args, **kwargs):
 
 @dataclass
 class ModuleConnectionExe(ModuleConnection):
-    exe_path: str = ""
+    exe_path: Path = Path("")
     pcomms_defaults: dict = field(default_factory=dict)
     container_starter: Callable = noop
 

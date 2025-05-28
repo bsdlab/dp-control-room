@@ -51,11 +51,36 @@ def start_container(
     start_kwargs: dict = {},
 ) -> subprocess.Popen:
     """
-    Given the configs for python, create subprocesses running the given modules
+    Start a container for a given module.
+
+    This function creates a subprocess to run a specified module using the provided
+    configurations. It supports starting Python modules and can be extended to support
+    other types of containers in the future.
+
+    Parameters
+    ----------
+    module_name : str
+        The name of the module to start.
+    ip : str
+        The IP address on which the module should run.
+    port : int
+        The port number on which the module should run.
+    loglevel : int, optional
+        The logging level for the module, by default 10 (DEBUG).
+    modules_root_path : Path, optional
+        The root path where the modules are located, by default Path(".").
+    start_kwargs : dict, optional
+        Additional keyword arguments to pass to the module, by default {}.
 
     Returns
     -------
     subprocess.Popen
+        A Popen object representing the started subprocess.
+
+    Raises
+    ------
+    AssertionError
+        If the specified module path does not exist.
     """
 
     modpath = modules_root_path.joinpath(module_name)

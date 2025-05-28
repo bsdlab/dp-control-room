@@ -157,3 +157,9 @@ cython_debug/
 configs/
 !configs/example_cfg.toml
 
+
+# quarto related
+/.quarto/
+_site/
+reference/
+objects.json

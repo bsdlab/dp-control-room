@@ -52,6 +52,9 @@ def test_dummy(debug: bool = True):
 
 
 def initialize_python_modules(mod_cfgs: dict) -> list[ModuleConnection]:
+    """
+    Initialize Python modules based on the provided configurations.
+    """
     connections = []
 
     # Python modules
@@ -68,6 +71,9 @@ def initialize_python_modules(mod_cfgs: dict) -> list[ModuleConnection]:
 
 
 def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
+    """
+    Initialize modules provided with an executable target. NOT WORKING ATM.
+    """
     connections = []
 
     # Python modules
@@ -87,6 +93,9 @@ def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
 
 
 def close_down_connections(mod_connections: list[ModuleConnection]):
+    """
+    Close all ModuleConnection instances.
+    """
     # Close down
     for conn in mod_connections:
         if conn.socket_c:
@@ -98,8 +107,22 @@ def close_down_connections(mod_connections: list[ModuleConnection]):
             conn.stop_process()
 
 
-def run_control_room(setup_cfg_path: Path = setup_cfg_path, debug: bool = True):
-    cfg = toml_load(setup_cfg_path)
+def run_control_room(setup_cfg_path: str = setup_cfg_path):
+    """
+    Run the control room application with the given setup configuration.
+
+    This function initializes the control room application, starts the module servers,
+    connects clients to the servers, and sets up the callback broker. It also creates
+    and runs the Dash app for the GUI.
+
+    Parameters
+    ----------
+    setup_cfg_path : str, optional
+        The path to the setup configuration file. Defaults to `setup_cfg_path`.
+
+    """
+
+    cfg = toml_load(Path(setup_cfg_path))
 
     connections = []
     log_server = psutil.Process(

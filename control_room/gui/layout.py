@@ -3,13 +3,33 @@ import json
 from dash import dcc, html
 
 from control_room.connection import ModuleConnection
+
 # from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
 
 
-def get_layout(
-    modules: list[ModuleConnection], macros: dict | None
-) -> html.Div:
+def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div:
+    """
+    Generate the layout for the control room application.
+
+    This function creates the overall layout of the control room application,
+    including headers, module tiles, and other UI components. It integrates
+    modules and macros into the layout.
+
+    Parameters
+    ----------
+    modules : list[ModuleConnection]
+        A list of ModuleConnection objects representing the modules to be included
+        in the application.
+    macros : dict | None
+        A dictionary containing macro definitions to be used in the application.
+        If None, no macros are used.
+
+    Returns
+    -------
+    html.Div
+        A Dash HTML Div containing the entire layout of the control room application.
+    """
     logfile = log_file_path.stem + log_file_path.suffix
 
     module_tiles = [] if macros is None else [create_macro_tile(macros)]
@@ -26,13 +46,9 @@ def get_layout(
                         id="control_room_icon",
                         className="header_icon",
                     ),
+                    html.Div("DAREPLANE Control Room", id="control_room_title"),
                     html.Div(
-                        "DAREPLANE Control Room", id="control_room_title"
-                    ),
-                    html.Div(
-                        children=[
-                            create_module_server_info(m) for m in modules
-                        ],
+                        children=[create_module_server_info(m) for m in modules],
                         id="module_server_check_boxes",
                     ),
                 ],
@@ -56,9 +72,7 @@ def get_layout(
                         children=module_tiles,
                     ),
                     # A timer for the log reading and the lsl fetch
-                    dcc.Interval(
-                        id="interval_3s", interval=3 * 1000, n_intervals=0
-                    ),
+                    dcc.Interval(id="interval_3s", interval=3 * 1000, n_intervals=0),
                 ],
             ),
             html.Div(id="last_pcomm_sent_div", className="hidden_div"),
@@ -79,6 +93,25 @@ def create_module_server_info(module: ModuleConnection) -> html.Div:
 
 
 def create_macro_tile(macros: dict) -> html.Div:
+    """
+    Create a tile containing buttons for each macro.
+
+    This function generates a Dash HTML Div that includes a button for each macro
+    defined in the provided dictionary. Each button is labeled with the macro's name
+    and is part of a tile layout.
+
+    Parameters
+    ----------
+    macros : dict
+        A dictionary containing macro definitions. Each key-value pair in the dictionary
+        represents a macro, where the key is the macro name and the value is a dictionary
+        containing macro-specific configurations.
+
+    Returns
+    -------
+    html.Div
+        A Dash HTML Div containing a tile with buttons for each macro.
+    """
     layout = html.Div(
         id="macros_div",
         className="module_tile",
@@ -86,9 +119,7 @@ def create_macro_tile(macros: dict) -> html.Div:
             # the header row
             html.Div(
                 className="tile_header",
-                children=[
-                    html.Div(className="module_name", children=["Macros"])
-                ],
+                children=[html.Div(className="module_name", children=["Macros"])],
             ),
             html.Div(
                 className="tile_pcomms",
@@ -105,6 +136,29 @@ def create_macro_tile(macros: dict) -> html.Div:
 
 
 def get_macro_button_input_pair(mc: dict) -> html.Div:
+    """
+    Create a macro button and input pair for a given macro configuration.
+
+    This function generates a Dash HTML Div containing a button and an input field
+    for a specified macro. The button is labeled with the macro's name, and the
+    input field is pre-filled with a default JSON value if provided in the macro
+    configuration.
+
+    Parameters
+    ----------
+    mc : dict
+        A dictionary containing the macro configuration. The dictionary should have
+        the following structure:
+        {
+            "name": str,
+            "default_json": dict | None
+        }
+
+    Returns
+    -------
+    html.Div
+        A Dash HTML Div containing a button and an input field for the macro.
+    """
     default_input = ""
 
     print(f"\n\n {mc} \n\n")
@@ -128,6 +182,9 @@ def get_macro_button_input_pair(mc: dict) -> html.Div:
 
 
 def get_lsl_streams_tile() -> html.Div:
+    """
+    Create the tile showing the active LSL streams
+    """
     return html.Div(
         id="lsl_stream_tile",
         className="tile",
@@ -153,6 +210,9 @@ def get_lsl_streams_tile() -> html.Div:
 
 
 def get_log_stream_tile(logfile_name: str) -> html.Div:
+    """
+    Create the tile showing the last lines of the log file
+    """
     return html.Div(
         id="log_stream_tile",
         className="tile",
@@ -178,6 +238,9 @@ def get_log_stream_tile(logfile_name: str) -> html.Div:
 
 
 def get_module_tile_layout(module: ModuleConnection) -> html.Div:
+    """
+    Create the tile showing the individual modules
+    """
     return html.Div(
         id=f"{module.name}_tile",
         className="module_tile tile",
@@ -186,13 +249,9 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
             html.Div(
                 className="tile_header",
                 children=[
-                    html.Div(
-                        className="module_name", children=[f"{module.name}"]
-                    ),
+                    html.Div(className="module_name", children=[f"{module.name}"]),
                     html.Div(className="module_ip", children=[f"{module.ip}"]),
-                    html.Div(
-                        className="module_port", children=[f"{module.port}"]
-                    ),
+                    html.Div(className="module_port", children=[f"{module.port}"]),
                     html.Div(
                         className=f"module_type module_{module.type}",
                         children=[f"{module.type}:{module.near_port}"],
@@ -214,6 +273,9 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
 def get_pcomm_button_input_pair(
     pcomm_name: str, mod_name: str, conn: ModuleConnection
 ) -> html.Div:
+    """
+    Create pairs of buttons and inputs for each pcommand
+    """
     # logger.debug(f"Building button input for {pcomm_name=} {mod_name=}")
     defaults = ""
     if "ao-communication" in mod_name:
