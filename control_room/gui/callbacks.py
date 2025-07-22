@@ -13,6 +13,17 @@ from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
 
 
+def is_ao_module(module_name: str) -> bool:
+    """
+    Helper function for as long as there is a special treatment for the AO modules
+    ie. until the TCP servers are built properly.
+
+    Have a separate function as this logic might be extended
+    """
+
+    return "dp-ao-comm" in module_name
+
+
 class PayloadError(KeyError):
     pass
 
@@ -210,7 +221,7 @@ def add_macros_sender(
 
                     # TODO: Properly refactor the AO module that this extra
                     # handling is no longer needed!
-                    if json_payload is not None and "ao-communication" in module.name:
+                    if json_payload is not None and is_ao_module(module.name):
                         payload_str = make_ao_payload_from_json(payload_str)
 
                     msg = msg + "|" + payload_str
@@ -222,7 +233,7 @@ def add_macros_sender(
                     logger.error(
                         f"Found a semi-colon in {msg=} - this is a reserved character please use characters other than `;`"
                     )
-                if "ao-communication" in module.name:
+                if is_ao_module(module.name):
                     # keep the old message structure until the AO module
                     # is properly integrated
                     module.socket_c.sendall(msg.encode())
@@ -310,7 +321,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
             json_payload = all_states[f"{mod_name}|{pcomm_name}"]
             logger.debug(f"module button {json_payload=}")
 
-            if json_payload is not None and "ao-communication" in module.name:
+            if json_payload is not None and is_ao_module(module.name):
                 json_payload = make_ao_payload_from_json(json_payload)
                 # import pdb
                 # pdb.set_trace()
