@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from socket import socket
 
 from control_room.connection import ModuleConnection
-from control_room.gui.callbacks import make_ao_payload_from_json
+from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
 from control_room.utils.logging import logger
 
 
@@ -121,7 +121,7 @@ class CallbackBroker:
                 else:
                     trg_mod = self.mod_connections[target_module_name]
 
-                    if trg_mod.name.startswith("dp-ao-communication"):
+                    if is_ao_module(trg_mod.name):
                         payload = make_ao_payload_from_json(payload)
 
                     cmd = pcomm + "|" + payload

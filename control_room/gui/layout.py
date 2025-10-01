@@ -2,6 +2,7 @@ import json
 
 from dash import dcc, html
 
+from control_room.callbacks import is_ao_module
 from control_room.connection import ModuleConnection
 
 # from control_room.utils.logging import logger
@@ -278,7 +279,7 @@ def get_pcomm_button_input_pair(
     """
     # logger.debug(f"Building button input for {pcomm_name=} {mod_name=}")
     defaults = ""
-    if "ao-communication" in mod_name:
+    if is_ao_module(mod_name):
         defaults = conn.pcomms_defaults[pcomm_name]
 
     return html.Div(

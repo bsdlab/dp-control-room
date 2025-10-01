@@ -184,6 +184,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         # app.run_server(debug=True)
 
         # for a lightweight production server
+        # app.enable_dev_tools(debug=True)
         serve(app.server, port=8050)
 
     finally:
