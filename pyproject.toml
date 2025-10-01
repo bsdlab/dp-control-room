@@ -3,7 +3,6 @@
 addopts = "-ra -q"
 testpaths = [
     "tests",
-    "./"
 ]
 filterwarnings = ["ignore:::.*fire.core"]
 
