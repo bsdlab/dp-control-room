@@ -46,7 +46,6 @@ def test_socket_connection(module_with_thread_for_tserver):
 
 @pytest.fixture
 def slow_server_thread() -> tuple[threading.Thread, threading.Event]:
-
     sev = threading.Event()
     thread = threading.Thread(
         target=run_slow_startup_server,
@@ -85,9 +84,9 @@ def test_retry_connection_after_s_for_slow_startup(slow_server_thread):
     con.socket_c.sendall(b"CLOSE\r\n")
     con.stop_socket_c()
 
-    assert (
-        "SLOWSERVERTEST" in con.pcomms
-    ), f"Did not get the expected pcomms from the server - {con.pcomms=}"
+    assert "SLOWSERVERTEST" in con.pcomms, (
+        f"Did not get the expected pcomms from the server - {con.pcomms=}"
+    )
 
 
 @pytest.fixture

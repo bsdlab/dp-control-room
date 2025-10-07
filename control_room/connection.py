@@ -14,9 +14,7 @@ from control_room.utils.logging import logger
 @dataclass
 class ModuleConnection:
     name: str
-    type: str = (
-        ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
-    )
+    type: str = ""  # a dareplane module type, e.g. control, io_data, io_control, decoding, paradigm    # noqa
     port: int = 0  # the port at the server
     near_port: int = 0  # the port of the client
     ip: str = "127.0.0.1"
@@ -40,7 +38,7 @@ class ModuleConnection:
         )
 
     def start_socket_client(self):
-        logger.debug(f"{self.name=} - connecting socket to " f"{self.ip}:{self.port}")
+        logger.debug(f"{self.name=} - connecting socket to {self.ip}:{self.port}")
         self.socket_c = create_socket_client(
             host_ip=self.ip,
             port=self.port,
@@ -88,9 +86,7 @@ class ModuleConnection:
     # Just have this method to have a consistent name with stop_process
     def stop_socket_c(self):
         try:
-            logger.debug(
-                f"{self.name} trying to gracefully shurtdown " f"{self.socket_c}"
-            )
+            logger.debug(f"{self.name} trying to gracefully shurtdown {self.socket_c}")
             self.socket_c.shutdown(SHUT_RDWR)
         except OSError:
             logger.debug(

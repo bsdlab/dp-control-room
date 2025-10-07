@@ -168,16 +168,16 @@ def get_macro_button_input_pair(mc: dict) -> html.Div:
         default_input = json.dumps(mc["default_json"])
 
     return html.Div(
-        id=f'{mc["name"]}|button_input_div',
+        id=f"{mc['name']}|button_input_div",
         className="pcomm_button_input_row",
         children=[
             html.Button(
                 f"{mc['name']}",
-                id=f'{mc["name"]}|button',
+                id=f"{mc['name']}|button",
                 className="pcomm_button",
                 n_clicks=0,
             ),
-            dcc.Textarea(id=f'{mc["name"]}|input', value=default_input),
+            dcc.Textarea(id=f"{mc['name']}|input", value=default_input),
         ],
     )
 

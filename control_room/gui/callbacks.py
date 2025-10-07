@@ -227,7 +227,7 @@ def add_macros_sender(
                     msg = msg + "|" + payload_str
 
                 logger.debug(
-                    f"Sending {msg=} to {module.name}@{module.ip}:" f"{module.port}"
+                    f"Sending {msg=} to {module.name}@{module.ip}:{module.port}"
                 )
                 if ";" in msg:
                     logger.error(
@@ -329,9 +329,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
             if json_payload:
                 msg = msg + "|" + json_payload
 
-            logger.debug(
-                f"Sending {msg=} to {module.name}@{module.ip}:" f"{module.port}"
-            )
+            logger.debug(f"Sending {msg=} to {module.name}@{module.ip}:{module.port}")
             module.socket_c.sendall(msg.encode())
 
         return msg
@@ -357,7 +355,6 @@ def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) 
         # there is far mre officient ways of reading tail
         # but for now this is sufficient (500us at 100k)
         if logfile.exists():
-
             # The version with paragraphs to a list failed - stop it for now
             # as it would only add color to the GUI
             log_str_msg = []
@@ -366,7 +363,6 @@ def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) 
                 # logger.debug("Trying to add colored log")
                 lines = logf.readlines()[-25:]
                 for logline in lines:
-
                     llevel = re.search(r"(DEBUG|INFO|WARNING|ERROR)", logline)
                     log_level = llevel.group(1) if llevel else "DEBUG"
 

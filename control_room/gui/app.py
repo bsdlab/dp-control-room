@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from dash import Dash
 
 from control_room.connection import ModuleConnection
