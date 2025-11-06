@@ -43,7 +43,7 @@ def create_socket_client(
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((host_ip, port))
             logger.debug(f"Connected to: {host_ip=}, {port=} using {s=}")
-            break
+            return s
         except ConnectionRefusedError:
             logger.debug(f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}")
 
@@ -55,4 +55,6 @@ def create_socket_client(
             pass
         conn_try += 1
 
-    return s
+    raise ConnectionRefusedError(
+        f"Connection refused after {MAX_CONNECT_RETRIES} tries: {host_ip=}, {port=}"
+    )
