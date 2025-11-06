@@ -1,7 +1,7 @@
 import subprocess
 import time
 from pathlib import Path
-from sys import platform
+from sys import executable
 
 import psutil
 
@@ -88,16 +88,21 @@ def start_container(
 
     logger.info(f"Spawning {module_name=} @ {ip}:{port} with {start_kwargs=}")
 
-    cmd = (
-        f"cd {modpath.resolve()}{COMMAND_SEP_MAP[platform]} "
-        "python -m api.server "
-        f"--port={port} --ip={ip} --loglevel={loglevel}"
-        + " "
-        + " ".join([f"--{k}={v}" for k, v in start_kwargs.items()])
-    )
+    cmd = [
+        executable,
+        "-m",
+        "api.server",
+        f"--port={port}",
+        f"--ip={ip}",
+        f"--loglevel={loglevel}",
+        *[f"--{k}={v}" for k, v in start_kwargs.items()],
+    ]
 
     # For now, this just starts python containers
     # [ ] TODO implement this for general containers, including Docker
 
     logger.debug(f"Running Popen with {cmd=}")
-    return subprocess.Popen(cmd, shell=True)
+    return subprocess.Popen(
+        cmd,
+        cwd=str(modpath.resolve()),
+    )
