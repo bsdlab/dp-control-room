@@ -1,7 +1,7 @@
 import subprocess
 import time
 from pathlib import Path
-from sys import platform
+from sys import executable
 
 import psutil
 
@@ -18,26 +18,44 @@ COMMAND_SEP_MAP = {
 
 def close_child_processes(process: subprocess.Popen) -> int:
     """Close all child processes of a Popen instance"""
-    parent_ps = psutil.Process(process.pid)
+    logger.debug(f"Closing child processes of parent process={process.pid}")
+    try:
+        parent_ps = psutil.Process(process.pid)
+    except psutil.NoSuchProcess:
+        logger.debug(f"Parent process {process.pid} no longer existing")
+        return 0
+
     max_iter = 5
     i = 0
 
-    while parent_ps and parent_ps.children != [] and i <= max_iter:
+    while i <= max_iter:
         if i > 0:
             time.sleep(0.2)
         try:
-            for ch in parent_ps.children():
-                logger.debug(f"Sending kill to child process={ch}")
-                ch.kill()
+            children = parent_ps.children()
         except psutil.NoSuchProcess:
-            logger.debug(f"Process {process.pid} no longer existing")
-            # break as no need to continue
+            logger.debug(f"Parent process {process.pid} no longer existing")
+            # Parent process is gone, so we are done
+            return 0
+
+        # If no children, break
+        if children == []:
             break
 
+        # Otherwise, try to terminate children
+        for ch in children:
+            try:
+                logger.debug(f"Sending terminate to child process={ch}")
+                ch.terminate()
+            except psutil.NoSuchProcess:
+                logger.debug(f"Child process {ch.pid} no longer existing")
         i += 1
 
     logger.debug(f"Sending kill to parent process={parent_ps}")
-    parent_ps.kill()
+    try:
+        parent_ps.kill()
+    except psutil.NoSuchProcess:
+        logger.debug(f"Parent process {process.pid} no longer existing")
 
     return 0
 
@@ -88,16 +106,21 @@ def start_container(
 
     logger.info(f"Spawning {module_name=} @ {ip}:{port} with {start_kwargs=}")
 
-    cmd = (
-        f"cd {modpath.resolve()}{COMMAND_SEP_MAP[platform]} "
-        "python -m api.server "
-        f"--port={port} --ip={ip} --loglevel={loglevel}"
-        + " "
-        + " ".join([f"--{k}={v}" for k, v in start_kwargs.items()])
-    )
+    cmd = [
+        executable,
+        "-m",
+        "api.server",
+        f"--port={port}",
+        f"--ip={ip}",
+        f"--loglevel={loglevel}",
+        *[f"--{k}={v}" for k, v in start_kwargs.items()],
+    ]
 
     # For now, this just starts python containers
     # [ ] TODO implement this for general containers, including Docker
 
     logger.debug(f"Running Popen with {cmd=}")
-    return subprocess.Popen(cmd, shell=True)
+    return subprocess.Popen(
+        cmd,
+        cwd=str(modpath.resolve()),
+    )

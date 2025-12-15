@@ -9,22 +9,14 @@ modules_root = '../'                                                            
     port = 8081                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
 [python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
-    lsl_out_stream_name = 'mockup_EEG_stream'
-    random_data = true       # --> use the start random button!
+    stream_name = 'mockup_EEG_stream'
 
 # -------------------- Pass through decoding -> add a callback ----------------
 [python.modules.dp-passthrough]                                      # names of a module to be used (folder name)
     type = 'pass_through'
     port = 8083                                                                 # if no port is provided, a random free port is chosen
     ip = '127.0.0.1'
-
-
-[python.modules.dp-echo]                                      # names of a module to be used (folder name)
-    type = 'echo'
-    port = 8082                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-    retry_connection_after_s = 2                                                # For modules with a slow start-up time, you might want to increase the time between conncetion attempts, default is 1s and 3 connection attempts
-
+    retry_connection_after_s = 1                                                # For modules with a slow start-up time, you might want to increase the time between conncetion attempts, default is 1s and 3 connection attempts
 
 [macros]
 

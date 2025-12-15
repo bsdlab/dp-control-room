@@ -39,11 +39,27 @@ class ModuleConnection:
 
     def start_socket_client(self):
         logger.debug(f"{self.name=} - connecting socket to {self.ip}:{self.port}")
-        self.socket_c = create_socket_client(
-            host_ip=self.ip,
-            port=self.port,
-            retry_connection_after_s=self.retry_connection_after_s,
-        )
+
+        try:
+            self.socket_c = create_socket_client(
+                host_ip=self.ip,
+                port=self.port,
+                retry_connection_after_s=self.retry_connection_after_s,
+            )
+        except ConnectionRefusedError as err:
+            # Check if connection failed because host process is not running, if so, give a more specific error
+            if self.host_process.poll() is not None:
+                logger.debug(
+                    f"{self.name=}- Cannot connect to socket at {self.ip}:{self.port}. Host process not running."
+                )
+                raise ConnectionRefusedError(
+                    f"Cannot connect to module {self.name=} at {self.ip}:{self.port}. Host process not running."
+                )
+            else:
+                logger.debug(
+                    f"{self.name=}- Cannot connect to socket at {self.ip}:{self.port}. Connection refused."
+                )
+                raise err
 
         # Time-out as non of the sockets should block indefinitely
         self.socket_c.setblocking(0)
