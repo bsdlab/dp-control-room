@@ -162,14 +162,8 @@ def test_subprocess(module_connection_with_running_process):
     con.stop_process()
     time.sleep(0.5)
 
-    # Second condition added for testing on windows
-    try:
-        assert con.host_process is None and hostp.status() == "zombie"
-    finally:
+    assert con.host_process is None
+
+    # Process should be killed already, so this should raise NoSuchProcess error
+    with pytest.raises(psutil.NoSuchProcess):
         hostp.kill()
-
-    logger.info(f"{hostp=}")
-
-
-# def test_just_run():
-#     run_server(port=8080, ip="127.0.0.1")
