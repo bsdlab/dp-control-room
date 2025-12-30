@@ -157,6 +157,9 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         subprocess.Popen([sys.executable, "-m", "control_room.utils.logserver"], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0).pid
     )
 
+    time.sleep(0.5)  # give the log server a moment to start
+
+    logger.info(f"Opening control room with configuration: {setup_cfg_path}")
     cbb_th = None
     server = None
 
@@ -173,7 +176,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
             logger.debug(f"Starting module server for {conn.name=}")
             conn.start_module_server()
 
-        time.sleep(0.5)
+        time.sleep(2)  # give the servers a moment to start
 
         # connect clients to the servers
         for conn in connections:
