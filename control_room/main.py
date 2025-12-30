@@ -4,10 +4,10 @@ import threading
 import time
 import os
 from pathlib import Path
-
+import signal
 import psutil
 from fire import Fire
-from waitress import serve
+from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
 from control_room.connection import ModuleConnection, ModuleConnectionExe
@@ -158,6 +158,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
     )
 
     cbb_th = None
+    server = None
 
     try:
         # Other modules
@@ -214,7 +215,23 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
 
         # for a lightweight production server
         # app.enable_dev_tools(debug=True)
-        serve(app.server, port=8050)
+
+        def on_shutdown():
+            """Close down server on shutdown signal, so we can cleanup properly."""
+            if server:
+                server.close()
+
+        # Register signal handlers for graceful shutdown
+        # TODO: test on all platforms
+        signal.signal(signal.SIGBREAK, lambda s,f: on_shutdown())
+        signal.signal(signal.SIGINT, lambda s,f: on_shutdown())
+        signal.signal(signal.SIGTERM, lambda s,f: on_shutdown())
+
+        logger.info("Serving control room on port 8050")
+        server = create_server(app.server, port=8050)
+        server.run()
+        
+        logger.info("Control room server has stopped.")
 
     finally:
         if cbb_th:
