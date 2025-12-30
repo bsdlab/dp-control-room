@@ -1,10 +1,11 @@
+import os
+import signal
 import subprocess
 import sys
 import threading
 import time
-import os
 from pathlib import Path
-import signal
+
 import psutil
 from fire import Fire
 from waitress.server import create_server
@@ -154,7 +155,10 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
 
     connections = []
     log_server = psutil.Process(
-        subprocess.Popen([sys.executable, "-m", "control_room.utils.logserver"], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0).pid
+        subprocess.Popen(
+            [sys.executable, "-m", "control_room.utils.logserver"],
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+        ).pid
     )
 
     time.sleep(0.5)  # give the log server a moment to start
@@ -226,14 +230,14 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
 
         # Register signal handlers for graceful shutdown
         # TODO: test on all platforms
-        signal.signal(signal.SIGBREAK, lambda s,f: on_shutdown())
-        signal.signal(signal.SIGINT, lambda s,f: on_shutdown())
-        signal.signal(signal.SIGTERM, lambda s,f: on_shutdown())
+        signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())
+        signal.signal(signal.SIGINT, lambda s, f: on_shutdown())
+        signal.signal(signal.SIGTERM, lambda s, f: on_shutdown())
 
         logger.info("Serving control room on port 8050")
         server = create_server(app.server, port=8050)
         server.run()
-        
+
         logger.info("Control room server has stopped.")
 
     finally:
@@ -254,7 +258,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
             logger.error(f"Error while closing down connections: {e}")
 
         logger.debug("Terminating log server")
-        time.sleep(1) # give some time to process remaining logs
+        time.sleep(1)  # give some time to process remaining logs
 
         if log_server.is_running():
             try:
