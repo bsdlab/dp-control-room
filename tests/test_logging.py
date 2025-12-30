@@ -49,8 +49,8 @@ def test_logger_fails_fast(fresh_logger):
     end = time.time()
 
     # If the log server is unreachable, the logger should fail fast
-    # The timeout duration is currently defined as 0.1s in dareplane-pyutils/src/dareplane_utils/logging/ujson_socket_handler.py
-    assert end - start < 0.2
+    # The timeout duration is currently defined as 0.3s in dareplane-pyutils/src/dareplane_utils/logging/ujson_socket_handler.py
+    assert end - start < 0.4
 
     start = time.time()
     logger.debug("Testing continued logging after failed connection")
