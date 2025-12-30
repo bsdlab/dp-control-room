@@ -58,6 +58,19 @@ def initialize_python_modules(mod_cfgs: dict) -> list[ModuleConnection]:
     """
     connections = []
 
+    if "modules" not in mod_cfgs:
+        logger.info("No python modules to initialize.")
+        return connections
+
+    if "modules_root" not in mod_cfgs:
+        logger.warning(
+            "No 'modules_root' specified in python module configurations. "
+            f"Using parent directory of current working directory as default ({Path.cwd().parent})."
+        )
+        mod_cfgs["modules_root"] = Path.cwd().parent
+
+    logger.debug(f"Python module configurations found: {mod_cfgs['modules'].keys()}")
+
     # Python modules
     for module_name, module_cfg in mod_cfgs["modules"].items():
         connections.append(
@@ -77,8 +90,21 @@ def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
     """
     connections = []
 
-    # Python modules
+    if "modules" not in mod_cfgs:
+        logger.info("No exe modules to initialize.")
+        return connections
+
+    logger.debug(f"Exe module configurations found: {mod_cfgs['modules'].keys()}")
+
+    # Exe modules
     for module_name, module_cfg in mod_cfgs["modules"].items():
+        required_keys = ["path", "ip", "port", "pcomms"]
+        for key in required_keys:
+            if key not in module_cfg:
+                raise KeyError(
+                    f"Module configuration for {module_name} is missing required key: {key}"
+                )
+
         connections.append(
             ModuleConnectionExe(
                 name=module_name,
