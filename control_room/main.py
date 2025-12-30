@@ -2,6 +2,7 @@ import subprocess
 import sys
 import threading
 import time
+import os
 from pathlib import Path
 
 import psutil
@@ -153,7 +154,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
 
     connections = []
     log_server = psutil.Process(
-        subprocess.Popen([sys.executable, "-m", "control_room.utils.logserver"]).pid
+        subprocess.Popen([sys.executable, "-m", "control_room.utils.logserver"], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0).pid
     )
 
     cbb_th = None
