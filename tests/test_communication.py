@@ -2,6 +2,7 @@ import subprocess
 import sys
 import threading
 import time
+from typing import Iterator
 
 import psutil
 import pytest
@@ -81,7 +82,7 @@ def test_socket_connection(module_with_thread_for_tserver):
 
 
 @pytest.fixture
-def slow_server_thread() -> tuple[threading.Thread, threading.Event]:
+def slow_server_thread() -> Iterator[tuple[threading.Thread, threading.Event]]:
     sev = threading.Event()
     thread = threading.Thread(
         target=run_slow_startup_server,
