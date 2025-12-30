@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import threading
 import time
 
@@ -6,10 +8,44 @@ import pytest
 
 from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
+from tests.resources.helpers import wait_for_port
 from tests.resources.tmodule import start_container
 from tests.resources.tserver import run_server, run_slow_startup_server
 
 logger.setLevel(10)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def log_server():
+    """
+    Start the logging server before running tests and stop it afterward.
+    This fixture has module scope and is set to autouse, so it is shared for all tests in the module
+    and it automatically runs without being imported.
+    """
+
+    # Start the log server process (example command)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "control_room.utils.logserver"],
+    )
+
+    # Wait for the log server to be ready
+    try:
+        wait_for_port()
+    except TimeoutError as e:
+        proc.terminate()
+        raise RuntimeError("Log server failed to start") from e
+
+    # Yields to the tests, not used
+    yield proc
+
+    # Teardown
+    time.sleep(1)  # wait a bit to ensure all logs are sent
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
 
 
 @pytest.fixture
