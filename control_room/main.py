@@ -234,21 +234,31 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         logger.info("Control room server has stopped.")
 
     finally:
+        logger.info("Shutting down control room...")
+
         if cbb_th:
-            logger.debug("Stopping callback broker")
-            cbb_stop.set()
-            cbb_th.join()
+            try:
+                logger.debug("Stopping callback broker")
+                cbb_stop.set()
+                cbb_th.join(timeout=3)
+            except Exception as e:
+                logger.error(f"Error while stopping CallbackBroker: {e}")
 
         logger.debug("Closing down connections")
-        close_down_connections(connections)
+        try:
+            close_down_connections(connections)
+        except Exception as e:
+            logger.error(f"Error while closing down connections: {e}")
 
         logger.debug("Terminating log server")
-        log_server.terminate()
-        time.sleep(0.1)
+        time.sleep(1) # give some time to process remaining logs
 
-        # check if the log server is still running
-        if psutil.pid_exists(log_server.pid):
-            log_server.kill()
+        if log_server.is_running():
+            try:
+                log_server.terminate()
+                log_server.wait(3)
+            except psutil.TimeoutExpired:
+                log_server.kill()
 
 
 if __name__ == "__main__":
