@@ -1,0 +1,4 @@
+-r requirements.txt
+dp-mockup-streamer @ git@github.com:bsdlab/dp-mockup-streamer.git
+dp-passthrough @ git@github.com:bsdlab/dp-passthrough.git
+pytest
