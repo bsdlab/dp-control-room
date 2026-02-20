@@ -229,8 +229,9 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
                 server.close()
 
         # Register signal handlers for graceful shutdown
-        # TODO: test on all platforms
-        signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())
+        # SIGBREAK is Windows-specific
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())
         signal.signal(signal.SIGINT, lambda s, f: on_shutdown())
         signal.signal(signal.SIGTERM, lambda s, f: on_shutdown())
 
