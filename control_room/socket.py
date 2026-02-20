@@ -48,10 +48,6 @@ def create_socket_client(
         except ConnectionRefusedError:
             logger.debug(f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}")
 
-            # Close the socket and start fresh as otherwise
-            # we will get a an Errno 22 in the second try
-            s.close()
-
             if conn_try == MAX_CONNECT_RETRIES - 1:
                 raise ConnectionRefusedError(
                     f"Creating socket failed. Connection refused after {MAX_CONNECT_RETRIES} tries: {host_ip=}, {port=}"
@@ -69,10 +65,6 @@ def create_socket_client(
                 )
         except Exception as e:
             logger.error(f"Unexpected error when creating socket: {e}")
-            try:
-                s.close()
-            except:
-                pass
 
             if conn_try == MAX_CONNECT_RETRIES - 1:
                 raise type(e)(
