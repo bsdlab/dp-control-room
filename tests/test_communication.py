@@ -1,15 +1,52 @@
+import subprocess
+import sys
 import threading
 import time
+from typing import Iterator
 
 import psutil
 import pytest
 
 from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
+from tests.resources.helpers import wait_for_port
 from tests.resources.tmodule import start_container
 from tests.resources.tserver import run_server, run_slow_startup_server
 
 logger.setLevel(10)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def log_server():
+    """
+    Start the logging server before running tests and stop it afterward.
+    This fixture has module scope and is set to autouse, so it is shared for all tests in the module
+    and it automatically runs without being imported.
+    """
+
+    # Start the log server process (example command)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "control_room.utils.logserver"],
+    )
+
+    # Wait for the log server to be ready
+    try:
+        wait_for_port()
+    except TimeoutError as e:
+        proc.terminate()
+        raise RuntimeError("Log server failed to start") from e
+
+    # Yields to the tests, not used
+    yield proc
+
+    # Teardown
+    time.sleep(1)  # wait a bit to ensure all logs are sent
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
 
 
 @pytest.fixture
@@ -45,7 +82,7 @@ def test_socket_connection(module_with_thread_for_tserver):
 
 
 @pytest.fixture
-def slow_server_thread() -> tuple[threading.Thread, threading.Event]:
+def slow_server_thread() -> Iterator[tuple[threading.Thread, threading.Event]]:
     sev = threading.Event()
     thread = threading.Thread(
         target=run_slow_startup_server,
@@ -125,14 +162,8 @@ def test_subprocess(module_connection_with_running_process):
     con.stop_process()
     time.sleep(0.5)
 
-    # Second condition added for testing on windows
-    try:
-        assert con.host_process is None and hostp.status() == "zombie"
-    finally:
+    assert con.host_process is None
+
+    # Process should be killed already, so this should raise NoSuchProcess error
+    with pytest.raises(psutil.NoSuchProcess):
         hostp.kill()
-
-    logger.info(f"{hostp=}")
-
-
-# def test_just_run():
-#     run_server(port=8080, ip="127.0.0.1")

@@ -46,20 +46,20 @@ class ModuleConnection:
                 port=self.port,
                 retry_connection_after_s=self.retry_connection_after_s,
             )
-        except ConnectionRefusedError as err:
+        except Exception as e:
             # Check if connection failed because host process is not running, if so, give a more specific error
-            if self.host_process.poll() is not None:
+            if self.host_process is not None and self.host_process.poll() is not None:
                 logger.debug(
-                    f"{self.name=}- Cannot connect to socket at {self.ip}:{self.port}. Host process not running."
+                    f"{self.name=}- Cannot connect module {self.name=} at {self.ip}:{self.port}. Host process not running."
                 )
                 raise ConnectionRefusedError(
                     f"Cannot connect to module {self.name=} at {self.ip}:{self.port}. Host process not running."
                 )
             else:
                 logger.debug(
-                    f"{self.name=}- Cannot connect to socket at {self.ip}:{self.port}. Connection refused."
+                    f"{self.name=}- Cannot connect module {self.name=} at {self.ip}:{self.port}. {type(e)}"
                 )
-                raise err
+                raise e
 
         # Time-out as non of the sockets should block indefinitely
         self.socket_c.setblocking(0)
