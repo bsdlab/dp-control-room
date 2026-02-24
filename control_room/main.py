@@ -100,7 +100,7 @@ def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
 
     # Exe modules
     for module_name, module_cfg in mod_cfgs["modules"].items():
-        required_keys = ["path", "ip", "port", "pcomms"]
+        required_keys = ["path", "ip", "port"]
         for key in required_keys:
             if key not in module_cfg:
                 raise KeyError(
@@ -113,8 +113,8 @@ def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
                 exe_path=Path(module_cfg["path"]),
                 ip=module_cfg["ip"],
                 port=module_cfg["port"],
-                pcomms=list(module_cfg["pcomms"].keys()),
-                pcomms_defaults=module_cfg["pcomms"],
+                pcomms=list(module_cfg.get("pcomms", {}).keys()),
+                pcomms_defaults=module_cfg.get("pcomms", {}),
             )
         )
 
