@@ -10,33 +10,53 @@ import pytest
 import tomllib
 
 
-def test_run_control_room():
-    cfg_path = "./configs/example_cfg.toml"
-    cfg = tomllib.load(open(Path(cfg_path), "rb"))
+@pytest.fixture()
+def test_cfg_path():
+    import tomli_w
+
+    cfg_path = Path("./configs/example_cfg.toml")
+    cfg = tomllib.load(open(cfg_path, "rb"))
+
+    # Drop the dp-mockup-streamer module from the example script >> this can have very slow start up, and is not necessary for the tests here
+    cfg["python"]["modules"] = {
+        "dp-passthrough": cfg["python"]["modules"]["dp-passthrough"],
+    }
+
+    new_cfg_path = Path("./configs/pytest_cfg.toml")
+    tomli_w.dump(cfg, open(new_cfg_path, "wb"))
+
+    yield new_cfg_path
+
+    new_cfg_path.unlink()  # clean up the generated config file
+
+
+def test_run_control_room(test_cfg_path):
+    cfg_path = test_cfg_path
+    cfg = tomllib.load(open(cfg_path, "rb"))
 
     print("Sys executable:", sys.executable)
     # Start the control room in a subprocess, capturing stdout and stderr so we can debug if it fails
     proc = subprocess.Popen(
         [sys.executable, "-m", "control_room.main", "--setup-cfg-path", cfg_path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        # stdout=subprocess.PIPE,   # -- just have the STDOUT shown
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
     )
 
     print("Started control room subprocess, PID:", proc.pid)
     try:
         # Allow some time for the control room to start
+        print("Waiting for 20s, for control room to start")
         time.sleep(20)
 
         # Check if the subprocess is still running, if not, capture output and raise error
         rc = proc.poll()
         if rc is not None:
-            stdout, stderr = proc.communicate()
+            stdout, _ = proc.communicate()
             raise AssertionError(
-                f"Subprocess exited early!\n"
-                f"Return code: {rc}\n"
-                f"STDOUT:\n{stdout}\n"
-                f"STDERR:\n{stderr}"
+                f"Subprocess exited early!\nReturn code: {rc}\nOUTPUT:\n{stdout}"
             )
 
         # Check that all modules specified in the config are running and reachable
@@ -65,7 +85,7 @@ def test_run_control_room():
             )
 
             # Wait for I/O, necessary to ensure proper termination
-            stdout, stderr = proc.communicate()
+            stdout, _ = proc.communicate()
 
             try:
                 proc.wait(timeout=20)

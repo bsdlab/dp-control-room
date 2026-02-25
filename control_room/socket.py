@@ -45,6 +45,7 @@ def create_socket_client(
             s = socket.create_connection((host_ip, port), timeout=timeout)
             logger.debug(f"Connected to: {host_ip=}, {port=} using {s=}")
             return s
+
         except ConnectionRefusedError:
             logger.debug(f"Connection refused: {host_ip=}, {port=}, try={conn_try + 1}")
 
@@ -52,17 +53,17 @@ def create_socket_client(
                 raise ConnectionRefusedError(
                     f"Creating socket failed. Connection refused after {MAX_CONNECT_RETRIES} tries: {host_ip=}, {port=}"
                 )
-            time.sleep(retry_connection_after_s)
+
         except TimeoutError:
             logger.debug(
                 f"Connection timed out: {host_ip=}, {port=}, try={conn_try + 1}"
             )
-            time.sleep(retry_connection_after_s)
 
             if conn_try == MAX_CONNECT_RETRIES - 1:
                 raise TimeoutError(
                     f"Creating socket failed. Connection timed out after {MAX_CONNECT_RETRIES} tries: {host_ip=}, {port=}"
                 )
+
         except Exception as e:
             logger.error(f"Unexpected error when creating socket: {e}")
 
@@ -70,5 +71,9 @@ def create_socket_client(
                 raise type(e)(
                     f"Creating socket failed. Unknown error after {MAX_CONNECT_RETRIES} tries: {host_ip=}, {port=}"
                 ) from e
-            time.sleep(retry_connection_after_s)
+
+        logger.debug(
+            f"Retrying connection after sleep for: {retry_connection_after_s}s"
+        )
+        time.sleep(retry_connection_after_s)
         conn_try += 1

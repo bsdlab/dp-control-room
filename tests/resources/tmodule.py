@@ -1,5 +1,6 @@
 # A dummy module for testing
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from socket import socket
@@ -10,7 +11,6 @@ from control_room.utils.logging import logger
 
 # Mockup for ./control_room/processes.py start_container()
 
-
 def start_container(
     name: str,
     ip: str = "127.0.0.1",
@@ -18,10 +18,9 @@ def start_container(
     loglevel: int = 10,
     **kwargs,
 ):
-    cmd = f"python -m tests.resources.tserver --port={port} --ip={ip}"
+    cmd = [sys.executable, "-m", "tests.resources.tserver", f"--port={port}", f"--ip={ip}"]
 
-    return subprocess.Popen(cmd, shell=True)
-
+    return subprocess.Popen(cmd)
 
 @dataclass
 class DummySocker:
@@ -34,7 +33,6 @@ class DummySocker:
             return 1
         # logger.info(f"Sending {msg=} to socket {self.ip}:{self.port}")
         return 0
-
 
 @dataclass
 class DummyModule:

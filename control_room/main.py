@@ -14,7 +14,7 @@ from control_room.callbacks import CallbackBroker
 from control_room.connection import ModuleConnection, ModuleConnectionExe
 from control_room.gui.app import build_app
 from control_room.utils.logging import logger
-from tests.resources.tmodule import get_dummy_modules
+from control_room.utils.network import wait_for_port
 
 # --- For backwards compatibility with python < 3.11
 try:
@@ -39,18 +39,20 @@ except ImportError:
 
 logger.setLevel(10)
 
-setup_cfg_path: str = "./configs/example_cfg.toml"
+SETUP_CFG_PATH: str = "./configs/example_cfg.toml"
 
 
 def test_dummy(debug: bool = True):
-    cfg = toml_load(setup_cfg_path)
+    from tests.resources.tmodule import get_dummy_modules
+
+    cfg = toml_load(Path(SETUP_CFG_PATH))
     modules = get_dummy_modules()
     for m in modules:
         m.get_pcommands()
         m.start_socket_client()
         print(m)
 
-    app = build_app(modules, macros=cfg.get("macros", None))
+    app = build_app(modules, macros=cfg.get("macros", None))  # type: ignore
     app.run_server(debug=debug)
 
 
@@ -136,7 +138,7 @@ def close_down_connections(mod_connections: list[ModuleConnection]):
             conn.stop_process()
 
 
-def run_control_room(setup_cfg_path: str = setup_cfg_path):
+def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
     """
     Run the control room application with the given setup configuration.
 
@@ -160,8 +162,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
         ).pid
     )
-
-    time.sleep(0.5)  # give the log server a moment to start
+    wait_for_port(port=9020, timeout=5)  # wait for log server to be ready
 
     logger.info(f"Opening control room with configuration: {setup_cfg_path}")
     cbb_th = None
@@ -231,7 +232,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         # Register signal handlers for graceful shutdown
         # SIGBREAK is Windows-specific
         if hasattr(signal, "SIGBREAK"):
-            signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())
+            signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())  # type: ignore
         signal.signal(signal.SIGINT, lambda s, f: on_shutdown())
         signal.signal(signal.SIGTERM, lambda s, f: on_shutdown())
 
@@ -247,7 +248,7 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         if cbb_th:
             try:
                 logger.debug("Stopping callback broker")
-                cbb_stop.set()
+                cbb_stop.set()  # type: ignore
                 cbb_th.join(timeout=3)
             except Exception as e:
                 logger.error(f"Error while stopping CallbackBroker: {e}")
@@ -261,11 +262,15 @@ def run_control_room(setup_cfg_path: str = setup_cfg_path):
         logger.debug("Terminating log server")
         time.sleep(1)  # give some time to process remaining logs
 
+        # Using prints, as the log server should be down, potentially before the
+        # message reaches the server via TCP
         if log_server.is_running():
             try:
+                print("Using log_server.terminate()")
                 log_server.terminate()
-                log_server.wait(3)
+                log_server.wait(timeout=3)
             except psutil.TimeoutExpired:
+                print("TimeoutExpired, using log_server.kill()")
                 log_server.kill()
 
 
