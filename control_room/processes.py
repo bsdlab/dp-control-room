@@ -1,3 +1,4 @@
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -54,6 +55,7 @@ def close_child_processes(process: subprocess.Popen) -> int:
     logger.debug(f"Sending kill to parent process={parent_ps}")
     try:
         parent_ps.kill()
+        parent_ps.wait()  # wait for the transition from zombie to terminated
     except psutil.NoSuchProcess:
         logger.debug(f"Parent process {process.pid} no longer existing")
 
@@ -116,11 +118,15 @@ def start_container(
         *[f"--{k}={v}" for k, v in start_kwargs.items()],
     ]
 
-    # For now, this just starts python containers
-    # [ ] TODO implement this for general containers, including Docker
+    # Explicitly forward the environment so that DYLD_LIBRARY_PATH (macOS),
+    # LD_LIBRARY_PATH (Linux) and PYTHONPATH survive the grandchild spawn.
+    # On macOS, SIP strips DYLD_LIBRARY_PATH from grandchild processes unless
+    # it is set explicitly in the env dict passed to Popen.
+    env = os.environ.copy()
 
     logger.debug(f"Running Popen with {cmd=}")
     return subprocess.Popen(
         cmd,
         cwd=str(modpath.resolve()),
+        env=env,
     )

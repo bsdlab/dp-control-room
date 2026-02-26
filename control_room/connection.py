@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from socket import SHUT_RDWR, socket
 from subprocess import Popen
-from typing import Callable
+from typing import Callable, Optional
 
 from control_room.processes import close_child_processes, start_container
 from control_room.socket import create_socket_client
@@ -18,8 +18,8 @@ class ModuleConnection:
     port: int = 0  # the port at the server
     near_port: int = 0  # the port of the client
     ip: str = "127.0.0.1"
-    socket_c: socket = None
-    host_process: Popen = None
+    socket_c: Optional[socket] = None
+    host_process: Optional[Popen] = None
     module_root_path: Path = Path(".")
     kwargs: dict = field(default_factory=dict)
     pcomms: list = field(default_factory=list)
@@ -62,7 +62,7 @@ class ModuleConnection:
                 raise e
 
         # Time-out as non of the sockets should block indefinitely
-        self.socket_c.setblocking(0)
+        self.socket_c.setblocking(0)  # type: ignore
 
         # read out the actual socket -> if port == 0, a random free port
         # was assigned
@@ -87,7 +87,7 @@ class ModuleConnection:
                 f"Connection refused for - {self.name=}, {self.ip=}, {self.port=}"
             )
             raise err
-        except TimeoutError as err:
+        except (TimeoutError, BlockingIOError) as err:
             logger.debug(f"No response upon connection for {self.name=} - {err=}")
         except Exception as err:
             logger.debug(f"Other error upon connection for {self.name=}, {err=}")
@@ -97,20 +97,20 @@ class ModuleConnection:
         if self.host_process:
             closed = close_child_processes(self.host_process)
             if closed == 0:
-                self.host_process = None
+                self.host_process = None  # type: ignore
 
     # Just have this method to have a consistent name with stop_process
     def stop_socket_c(self):
         try:
             logger.debug(f"{self.name} trying to gracefully shurtdown {self.socket_c}")
-            self.socket_c.shutdown(SHUT_RDWR)
+            self.socket_c.shutdown(SHUT_RDWR)  # type: ignore
         except OSError:
             logger.debug(
                 f"{self.name} caught OSError on connection.shutdown"
                 " - connection already closed?"
             )
 
-        self.socket_c.close()
+        self.socket_c.close()  # type: ignore
 
     def __del__(self):
         if self.host_process:
@@ -122,11 +122,11 @@ class ModuleConnection:
         """Populate self.pcommands as a list of possible commands"""
 
         logger.debug(f"Getting PCOMMS from {self.name}")
-        self.socket_c.sendall(b"GET_PCOMMS")
+        self.socket_c.sendall(b"GET_PCOMMS")  # type: ignore
         time.sleep(0.1)  # allow for processing on the server
         # logger.debug(f"Reading for receive")
 
-        msg = self.socket_c.recv(2048 * 8)
+        msg = self.socket_c.recv(2048 * 8)  # type: ignore
         logger.debug(f"Received msg for pcommands: {msg.decode()}")
         self.pcomms = msg.decode().split("|")
 

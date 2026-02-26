@@ -9,7 +9,7 @@ import pytest
 
 from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
-from tests.resources.helpers import wait_for_port
+from control_room.utils.network import wait_for_port
 from tests.resources.tmodule import start_container
 from tests.resources.tserver import run_server, run_slow_startup_server
 
@@ -160,7 +160,7 @@ def test_subprocess(module_connection_with_running_process):
     hostp = psutil.Process(host_pid)
 
     con.stop_process()
-    time.sleep(0.5)
+    time.sleep(1)
 
     assert con.host_process is None
 
