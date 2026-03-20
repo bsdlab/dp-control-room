@@ -170,7 +170,6 @@ def initialize_modules(cfg: dict[str, Any], cfg_file: Path) -> list[ModuleConnec
                 launcher=launcher,
                 communicator=communicator,
                 pcomms=list(module_cfg.get("pcomms", [])),
-                module_kind=module_kind,
             )
         )
 
