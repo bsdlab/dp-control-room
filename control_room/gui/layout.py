@@ -1,9 +1,9 @@
 import json
 
+from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import dcc, html
 
 from control_room.callbacks import is_ao_module
-from control_room.connection import ModuleConnection
 
 # from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
@@ -251,12 +251,6 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
                 className="tile_header",
                 children=[
                     html.Div(className="module_name", children=[f"{module.name}"]),
-                    html.Div(className="module_ip", children=[f"{module.ip}"]),
-                    html.Div(className="module_port", children=[f"{module.port}"]),
-                    html.Div(
-                        className=f"module_type module_{module.type}",
-                        children=[f"{module.type}:{module.near_port}"],
-                    ),
                 ],
             ),
             # the pcommand button input pairs

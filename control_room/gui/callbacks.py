@@ -5,10 +5,10 @@ from pathlib import Path
 from time import sleep
 
 import pylsl
+from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import Dash, ctx, html
 from dash.dependencies import Input, Output, State
 
-from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
 

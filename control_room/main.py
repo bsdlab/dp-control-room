@@ -5,13 +5,16 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import psutil
+from dareplane_utils.module_handling.communication import SocketCommunicator
+from dareplane_utils.module_handling.launcher import ExeLauncher, PythonLauncher
+from dareplane_utils.module_handling.module_connection import ModuleConnection
 from fire import Fire
 from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
-from control_room.connection import ModuleConnection, ModuleConnectionExe
 from control_room.gui.app import build_app
 from control_room.utils.logging import logger
 from control_room.utils.network import wait_for_port
@@ -56,67 +59,118 @@ def test_dummy(debug: bool = True):
     app.run_server(debug=debug)
 
 
-def initialize_python_modules(mod_cfgs: dict) -> list[ModuleConnection]:
-    """
-    Initialize Python modules based on the provided configurations.
-    """
-    connections = []
+def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
+    path = Path(path_value).expanduser()
+    if path.is_absolute():
+        return path.resolve()
 
-    if "modules" not in mod_cfgs:
-        logger.info("No python modules to initialize.")
-        return connections
+    cfg_relative = (cfg_file.parent / path).resolve()
+    if cfg_relative.exists():
+        return cfg_relative
 
-    if "modules_root" not in mod_cfgs:
-        logger.warning(
-            "No 'modules_root' specified in python module configurations. "
-            f"Using parent directory of current working directory as default ({Path.cwd().parent})."
-        )
-        mod_cfgs["modules_root"] = Path.cwd().parent
+    cwd_relative = (Path.cwd() / path).resolve()
+    if cwd_relative.exists():
+        return cwd_relative
 
-    logger.debug(f"Python module configurations found: {mod_cfgs['modules'].keys()}")
+    raise FileNotFoundError(
+        f"Cannot resolve path '{path_value}' in config file '{cfg_file}'. "
+    )
 
-    # Python modules
-    for module_name, module_cfg in mod_cfgs["modules"].items():
-        connections.append(
-            ModuleConnection(
-                name=module_name,
-                module_root_path=Path(mod_cfgs["modules_root"]),
-                **module_cfg,
+
+def _get_required_field(dict, key) -> Any:
+    if key not in dict:
+        raise KeyError(f"Missing required key '{key}' in {dict}")
+    return dict[key]
+
+
+def initialize_modules(cfg: dict[str, Any], cfg_file: Path) -> list[ModuleConnection]:
+    connections: list[ModuleConnection] = []
+
+    modules_cfg = cfg.get("modules", {})
+    if not isinstance(modules_cfg, dict):
+        raise TypeError("Config key 'modules' must be a table/object")
+
+    modules_root = modules_cfg.get("modules_root", None)
+    modules = [m for m in modules_cfg.items() if isinstance(m[1], dict)]  # type: ignore
+
+    for module_key, module_cfg in modules:
+        module_kind = _get_required_field(module_cfg, "kind").strip().lower()
+        name = str(module_cfg.get("name", module_key))
+
+        if module_kind == "python":
+            entry_point = str(
+                module_cfg.get("module", f"{module_key.replace('-', '_')}.main")
             )
-        )
 
-    return connections
-
-
-def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
-    """
-    Initialize modules provided with an executable target. NOT WORKING ATM.
-    """
-    connections = []
-
-    if "modules" not in mod_cfgs:
-        logger.info("No exe modules to initialize.")
-        return connections
-
-    logger.debug(f"Exe module configurations found: {mod_cfgs['modules'].keys()}")
-
-    # Exe modules
-    for module_name, module_cfg in mod_cfgs["modules"].items():
-        required_keys = ["path", "ip", "port"]
-        for key in required_keys:
-            if key not in module_cfg:
+            if "cwd" in module_cfg:
+                cwd = _resolve_cfg_path(str(module_cfg["cwd"]), cfg_file)
+            elif modules_root:
+                cwd = _resolve_cfg_path(
+                    str(Path(str(modules_root)) / module_key), cfg_file
+                )
+            else:
                 raise KeyError(
-                    f"Module configuration for {module_name} is missing required key: {key}"
+                    f"Missing 'cwd' for modules.{module_key}. "
+                    "Either set module-specific 'cwd' or global 'modules.modules_root'."
                 )
 
+            launcher = PythonLauncher(
+                entry_point=entry_point,
+                cwd=cwd,
+                executable=str(module_cfg.get("python_executable", sys.executable)),
+                args=list(module_cfg.get("args", [])),
+                kwargs=dict(module_cfg.get("kwargs", {})),
+            )
+        elif module_kind == "exe":
+            exe_path = _resolve_cfg_path(
+                _get_required_field(module_cfg, "path"), cfg_file
+            )
+            exe_cwd = (
+                _resolve_cfg_path(str(module_cfg["cwd"]), cfg_file)
+                if "cwd" in module_cfg
+                else None
+            )
+
+            launcher = ExeLauncher(
+                exe_path=exe_path,
+                args=list(module_cfg.get("args", [])),
+                cwd=exe_cwd,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported kind '{module_kind}' for modules.{module_key}. "
+                "Supported kinds: 'python', 'exe'."
+            )
+
+        connection_cfg = module_cfg.get("connection")
+        if connection_cfg and connection_cfg.get("type") == "socket":
+            ip = str(_get_required_field(connection_cfg, "ip"))
+            port = int(_get_required_field(connection_cfg, "port"))
+            retry_after_s = float(connection_cfg.get("retry_after_s", 1.0))
+            max_connect_retries = int(connection_cfg.get("max_connect_retries", 3))
+            communicator = SocketCommunicator(
+                ip=ip,
+                port=port,
+                name=name,
+                retry_after_s=retry_after_s,
+                max_connect_retries=max_connect_retries,
+                logger=logger,
+            )
+        elif module_cfg.get("connection", None) is None:
+            communicator = None
+        else:
+            raise ValueError(
+                f"Unsupported connection type for modules.{module_key}. "
+                "Currently only 'socket' connection is supported."
+            )
+
         connections.append(
-            ModuleConnectionExe(
-                name=module_name,
-                exe_path=Path(module_cfg["path"]),
-                ip=module_cfg["ip"],
-                port=module_cfg["port"],
-                pcomms=list(module_cfg.get("pcomms", {}).keys()),
-                pcomms_defaults=module_cfg.get("pcomms", {}),
+            ModuleConnection(
+                name=name,
+                launcher=launcher,
+                communicator=communicator,
+                pcomms=list(module_cfg.get("pcomms", [])),
+                module_kind=module_kind,
             )
         )
 
@@ -127,15 +181,8 @@ def close_down_connections(mod_connections: list[ModuleConnection]):
     """
     Close all ModuleConnection instances.
     """
-    # Close down
     for conn in mod_connections:
-        if conn.socket_c:
-            # API connection
-            conn.stop_socket_c()
-
-        # the server process
-        if conn.host_process:
-            conn.stop_process()
+        conn.stop()
 
 
 def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
@@ -153,9 +200,10 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
     """
 
-    cfg = toml_load(Path(setup_cfg_path))
+    cfg_file = Path(setup_cfg_path).resolve()
+    cfg = toml_load(cfg_file)
 
-    connections = []
+    connections: list[ModuleConnection] = []
     log_server = psutil.Process(
         subprocess.Popen(
             [sys.executable, "-m", "control_room.utils.logserver"],
@@ -166,31 +214,24 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
     logger.info(f"Opening control room with configuration: {setup_cfg_path}")
     cbb_th = None
+    cbb_stop = None
     server = None
 
     try:
-        # Other modules
-        if "exe" in cfg.keys():
-            connections += initialize_exe_modules(cfg["exe"])
+        connections = initialize_modules(cfg, cfg_file)
 
-        if "python" in cfg.keys():
-            connections += initialize_python_modules(cfg["python"])
-
-        # start the module servers - spawning the processes
+        # start and connect to the modules
         for conn in connections:
-            logger.debug(f"Starting module server for {conn.name=}")
-            conn.start_module_server()
+            logger.debug(f"Launching and connecting to {conn.name=}")
+            conn.start()
 
         time.sleep(2)  # give the servers a moment to start
 
         # connect clients to the servers
         for conn in connections:
-            logger.debug(f"Starting socket client for {conn.name=}")
-            conn.start_socket_client()
-
-            logger.debug(f"Getting PCOMMS for {conn.name=}")
-            # request primary commands
-            conn.get_pcommands()
+            if not conn.pcomms:
+                logger.debug(f"Getting PCOMMS for {conn.name=}")
+                conn.get_pcommands()
 
         # hook up the callback broker
         logger.debug("Starting CallbackBroker thread")
@@ -199,14 +240,15 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
         # prepare the connection socket timeouts to be quicker
         for c in connections:
-            c.socket_c.settimeout(0.001)
+            if c.socket_c:
+                c.socket_c.settimeout(0.001)
 
         cbb = CallbackBroker(
             mod_connections={c.name: c for c in connections},
             stop_event=cbb_stop,
         )
         logger.info(
-            f"CallbackBroker has following modules connected: {list[cbb.mod_connections.keys()]}"
+            f"CallbackBroker has following modules connected: {list(cbb.mod_connections.keys())}"
         )
         cbb_th = threading.Thread(target=cbb.listen_for_callbacks)
         cbb_th.start()
@@ -248,7 +290,8 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         if cbb_th:
             try:
                 logger.debug("Stopping callback broker")
-                cbb_stop.set()  # type: ignore
+                if cbb_stop:
+                    cbb_stop.set()
                 cbb_th.join(timeout=3)
             except Exception as e:
                 logger.error(f"Error while stopping CallbackBroker: {e}")
@@ -266,11 +309,11 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         # message reaches the server via TCP
         if log_server.is_running():
             try:
-                print("Using log_server.terminate()")
+                print("Calling log_server.terminate()")
                 log_server.terminate()
                 log_server.wait(timeout=3)
             except psutil.TimeoutExpired:
-                print("TimeoutExpired, using log_server.kill()")
+                print("TimeoutExpired, calling log_server.kill()")
                 log_server.kill()
 
 

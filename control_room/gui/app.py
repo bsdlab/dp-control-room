@@ -1,6 +1,6 @@
+from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import Dash
 
-from control_room.connection import ModuleConnection
 from control_room.gui.callbacks import add_callbacks
 from control_room.gui.layout import get_layout
 

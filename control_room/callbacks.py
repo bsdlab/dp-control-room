@@ -10,7 +10,8 @@ import threading
 from dataclasses import dataclass, field
 from socket import socket
 
-from control_room.connection import ModuleConnection
+from dareplane_utils.module_handling.module_connection import ModuleConnection
+
 from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
 from control_room.utils.logging import logger
 
