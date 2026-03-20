@@ -24,6 +24,7 @@
 # 5 Optional:
 #       - args: passed to exe/python modules as command line args
 #       - kwargs: passed to python module as --key=value
+#       - python_executable: A specific python instance to launch the module with
 #       - name: UI/display name (defaults to module key)
 #
 # 6 Define macros (optional)
