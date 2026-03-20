@@ -1,22 +1,70 @@
-[python]
-# Modules to be brought up by simply running the python processes async
-# Leave this empty if no blocks should be started like this
-modules_root = '../'                                                            # path to the root if the modules
+# -----------------------------------------------------------------------------
+# Control Room module configuration
+#   This config allows you to define which other modules should be launched 
+#    alongside the control room, how they are launched, and how the control
+#    room can interact with them.
+#
+# 1 Add one module block under [modules.<your-module-name>]
+#
+# 2 Set kind = 'python' or kind = 'exe', depending on how it should be launched
+#
+# 3 For python modules, set:
+#       - module = '<python.module.entrypoint>'   (runs as: python -m module)
+#       - cwd = '<path-to-module-root>'
+#   For exe modules, set:
+#       - path = '<path-to-executable>'
+#
+# 4 If your module should be connected via TCP socket, add a
+#    [modules.<name>.connection] table with:
+#       - type = 'socket'
+#       - ip, port
+#       - optionally: retry_after_s and max_connect_retries
+#    other connection types are not yet supported, but might be in the future
+#
+# 5 Optional:
+#       - args: passed to exe/python modules as command line args
+#       - kwargs: passed to python module as --key=value
+#       - name: UI/display name (defaults to module key)
+#
+# 6 Define macros (optional)
+#       - Macro commands allow you to execute certain commands directly 
+#         from the control room interface
+# -----------------------------------------------------------------------------
 
-# -------------------- Mockup Streamer ---------------------------------------
-[python.modules.dp-mockup-streamer]                                      # names of a module to be used (folder name)
-    type = 'io_data'
-    port = 8081                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-[python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
-    stream_name = 'mockup_EEG_stream'
+[modules]
+modules_root = '../../'  # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
 
-# -------------------- Pass through decoding -> add a callback ----------------
-[python.modules.dp-passthrough]                                      # names of a module to be used (folder name)
-    type = 'pass_through'
-    port = 8083                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-    retry_connection_after_s = 1                                                # For modules with a slow start-up time, you might want to increase the time between conncetion attempts, default is 1s and 3 connection attempts
+# Example Python module
+[modules.dp-mockup-streamer]
+kind = 'python'
+name = 'dp-mockup-streamer'
+module = 'api.server'
+cwd = '../../dp-mockup-streamer'            
+
+# Socket connection settings for this module
+[modules.dp-mockup-streamer.connection]
+type = 'socket'
+ip = '127.0.0.1'
+port = 8080
+retry_after_s = 1
+max_connect_retries = 5
+
+[modules.dp-mockup-streamer.kwargs]
+stream_name = 'mockup_EEG_stream'
+ip = '127.0.0.1'
+port = 8080
+
+
+# Another Python module
+[modules.dp-passthrough]
+kind = 'python'
+name = 'dp-passthrough'
+module = 'api.server'
+cwd = '../../dp-passthrough'
+
+[modules.dp-passthrough.kwargs]
+ip = '127.0.0.1'
+port = 8083
 
 [macros]
 
