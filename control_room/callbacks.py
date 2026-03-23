@@ -14,6 +14,7 @@ from dareplane_utils.module_handling.module_connection import ModuleConnection
 
 from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
 from control_room.utils.logging import logger
+from control_room.utils.modules import DPModuleConnection
 
 
 @dataclass
@@ -114,7 +115,12 @@ class CallbackBroker:
                         f"is not registered: {target_module_name}"
                     )
                 # Assert that the target module supports the PCOMM
-                elif pcomm not in self.mod_connections[target_module_name].pcomms:
+                elif (
+                    not isinstance(
+                        self.mod_connections[target_module_name], DPModuleConnection
+                    )
+                    or pcomm not in self.mod_connections[target_module_name].pcomms
+                ):
                     logger.error(
                         "CallbackBroker received a message for a module that "
                         f"does not support the PCOMM: {pcomm}"
