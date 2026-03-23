@@ -67,6 +67,11 @@ cwd = '../../dp-passthrough'
 ip = '127.0.0.1'
 port = 8083
 
+[modules.dp-passthrough.connection]
+type = 'socket'
+ip = '127.0.0.1'
+port = 8083
+
 [macros]
 
 [macros.start_streaming]
