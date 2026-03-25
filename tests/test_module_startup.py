@@ -4,10 +4,10 @@ import socket
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 
 @pytest.fixture()
@@ -17,10 +17,14 @@ def test_cfg_path():
     cfg_path = Path("./configs/example_cfg.toml")
     cfg = tomllib.load(open(cfg_path, "rb"))
 
-    # Drop the dp-mockup-streamer module from the example script >> this can have very slow start up, and is not necessary for the tests here
-    cfg["python"]["modules"] = {
-        "dp-passthrough": cfg["python"]["modules"]["dp-passthrough"],
+    # Drop the dp-mockup-streamer module from the example script >> this can
+    # have very slow start up, and is not necessary for the tests here
+    modules_root = cfg["modules"].get("modules_root")
+    cfg["modules"] = {
+        "dp-passthrough": cfg["modules"]["dp-passthrough"],
     }
+    if modules_root is not None:
+        cfg["modules"]["modules_root"] = modules_root
 
     new_cfg_path = Path("./configs/pytest_cfg.toml")
     tomli_w.dump(cfg, open(new_cfg_path, "wb"))
@@ -59,23 +63,30 @@ def test_run_control_room(test_cfg_path):
                 f"Subprocess exited early!\nReturn code: {rc}\nOUTPUT:\n{stdout}"
             )
 
-        # Check that all modules specified in the config are running and reachable
-        for conn_type in ["python", "exe"]:
-            if conn_type in cfg:
-                for module_name in cfg[conn_type]["modules"]:
-                    port = cfg[conn_type]["modules"][module_name]["port"]
-                    ip = cfg[conn_type]["modules"][module_name]["ip"]
-                    # Check if the module port is open
-                    try:
-                        print(
-                            f"Checking connectivity to module {module_name} at {ip}:{port}..."
-                        )
-                        s = socket.create_connection((ip, port), timeout=5)
-                        s.close()
-                    except Exception as e:
-                        raise AssertionError(
-                            f"Module {module_name} at {ip}:{port} is not reachable: {e}"
-                        )
+        # Check that all socket-connected modules specified in the config are
+        # running and reachable
+        for module_name, module_cfg in cfg.get("modules", {}).items():
+            if not isinstance(module_cfg, dict):
+                continue
+
+            connection_cfg = module_cfg.get("connection")
+            if not isinstance(connection_cfg, dict):
+                continue
+            if connection_cfg.get("type") != "socket":
+                continue
+
+            port = int(connection_cfg["port"])
+            ip = str(connection_cfg["ip"])
+            try:
+                print(
+                    f"Checking connectivity to module {module_name} at {ip}:{port}..."
+                )
+                s = socket.create_connection((ip, port), timeout=5)
+                s.close()
+            except Exception as e:
+                raise AssertionError(
+                    f"Module {module_name} at {ip}:{port} is not reachable: {e}"
+                )
 
     finally:
         if proc.poll() is None:
@@ -101,22 +112,29 @@ def test_run_control_room(test_cfg_path):
             "Control room subprocess did not shut down properly."
         )
 
-        # Check that modules have shut down properly
-        for conn_type in ["python", "exe"]:
-            if conn_type in cfg:
-                for module_name in cfg[conn_type]["modules"]:
-                    port = cfg[conn_type]["modules"][module_name]["port"]
-                    ip = cfg[conn_type]["modules"][module_name]["ip"]
-                    # Check if the module port is open, it should be closed now
-                    with pytest.raises(Exception):
-                        try:
-                            conn = socket.create_connection((ip, port), timeout=0.5)
-                            conn.close()
-                        except Exception as e:
-                            print(
-                                f"Module {module_name} at {ip}:{port} is confirmed shut down."
-                            )
-                            raise e
+        # Check that socket-connected modules have shut down properly
+        for module_name, module_cfg in cfg.get("modules", {}).items():
+            if not isinstance(module_cfg, dict):
+                continue
+
+            connection_cfg = module_cfg.get("connection")
+            if not isinstance(connection_cfg, dict):
+                continue
+            if connection_cfg.get("type") != "socket":
+                continue
+
+            port = int(connection_cfg["port"])
+            ip = str(connection_cfg["ip"])
+            # Check if the module port is open, it should be closed now
+            with pytest.raises(Exception):
+                try:
+                    conn = socket.create_connection((ip, port), timeout=0.5)
+                    conn.close()
+                except Exception as e:
+                    print(
+                        f"Module {module_name} at {ip}:{port} is confirmed shut down."
+                    )
+                    raise e
 
         # Check that log server has shut down properly
         log_port = 9020
