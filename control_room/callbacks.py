@@ -10,6 +10,7 @@ import threading
 from dataclasses import dataclass, field
 from socket import socket
 
+from dareplane_utils.module_handling.communication import SocketCommunicator
 from dareplane_utils.module_handling.module_connection import ModuleConnection
 
 from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
@@ -56,7 +57,10 @@ class CallbackBroker:
             # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
                 # We currently only do callbacks for modules connected via TCP
-                if mod_connection.communicator.socket_c is not None:
+                if (
+                    isinstance(mod_connection.communicator, SocketCommunicator)
+                    and mod_connection.communicator.socket_c is not None
+                ):
                     self.check_for_callback(
                         mod_connection.communicator.socket_c, mod_name
                     )
