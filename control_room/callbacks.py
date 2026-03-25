@@ -55,7 +55,11 @@ class CallbackBroker:
             # modules need to be checked --> potentially create a whitelist
             # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
-                self.check_for_callback(mod_connection.socket_c, mod_name)
+                # We currently only do callbacks for modules connected via TCP
+                if mod_connection.communicator.socket_c is not None:
+                    self.check_for_callback(
+                        mod_connection.communicator.socket_c, mod_name
+                    )
 
     def check_for_callback(self, msocket: socket, mod_name: str):
         """
@@ -132,4 +136,4 @@ class CallbackBroker:
                         payload = make_ao_payload_from_json(payload)
 
                     cmd = pcomm + "|" + payload
-                    trg_mod.socket_c.sendall(cmd.encode())
+                    trg_mod.send_message(cmd.encode())
