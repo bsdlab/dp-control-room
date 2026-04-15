@@ -33,9 +33,9 @@ class ControlRoomModuleConnection(ModuleConnection):
         except TimeoutError:
             logger.warning(f"Timeout while getting pcomms for {self.name}")
         except UnicodeDecodeError:
-            logger.warning(f"Failed to decode pcomms response for {self.name}")
+            logger.error(f"Failed to decode pcomms response for {self.name}")
         except Exception as e:
-            logger.warning(f"Failed to get pcomms for {self.name}: {e}")
+            logger.error(f"Failed to get pcomms for {self.name}: {e}")
 
 
 def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
