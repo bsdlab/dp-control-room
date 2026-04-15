@@ -8,14 +8,13 @@ from pathlib import Path
 
 import psutil
 from dareplane_utils.module_handling.communication import SocketCommunicator
-from dareplane_utils.module_handling.module_connection import ModuleConnection
 from fire import Fire
 from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
 from control_room.gui.app import build_app
 from control_room.utils.logging import logger
-from control_room.utils.modules import DPModuleConnection, initialize_modules
+from control_room.utils.modules import ControlRoomModuleConnection, initialize_modules
 from control_room.utils.network import wait_for_port
 
 # --- For backwards compatibility with python < 3.11
@@ -58,9 +57,9 @@ def test_dummy(debug: bool = True):
     app.run_server(debug=debug)
 
 
-def close_down_connections(mod_connections: list[ModuleConnection]):
+def close_down_connections(mod_connections: list[ControlRoomModuleConnection]):
     """
-    Close all ModuleConnection instances.
+    Close all ControlRoomModuleConnection instances.
     """
     for conn in mod_connections:
         conn.stop()
@@ -84,7 +83,7 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
     cfg_file = Path(setup_cfg_path).resolve()
     cfg = toml_load(cfg_file)
 
-    connections: list[ModuleConnection] = []
+    connections: list[ControlRoomModuleConnection] = []
     log_server = psutil.Process(
         subprocess.Popen(
             [sys.executable, "-m", "control_room.utils.logserver"],
@@ -108,10 +107,9 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
         time.sleep(2)  # give the servers a moment to start
 
-        # connect clients to the servers
+        # Get the pcomms for each module
         for conn in connections:
-            if isinstance(conn, DPModuleConnection):
-                conn.get_pcommands()
+            conn.get_pcommands()
 
         # hook up the callback broker
         logger.debug("Starting CallbackBroker thread")

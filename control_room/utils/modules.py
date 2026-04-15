@@ -1,5 +1,6 @@
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -10,21 +11,31 @@ from dareplane_utils.module_handling.module_connection import ModuleConnection
 from control_room.utils.logging import logger
 
 
-class DPModuleConnection(ModuleConnection):
+@dataclass
+class ControlRoomModuleConnection(ModuleConnection):
     """ModuleConection subclass that adds dp-specific functions such as getting pcomms."""
 
+    pcomms: list[str] = field(default_factory=list)
+
     def get_pcommands(self) -> None:
-        if not self.communicator:
-            logger.warning(
-                f"Cannot get pcomms for {self.name} because it has no communicator"
-            )
-            return
-        self.communicator.send(b"GET_PCOMMS")
-        time.sleep(0.1)
-        msg = self.communicator.receive(2048 * 8)
-        decoded = msg.decode().strip()
-        if decoded:
-            self.pcomms = decoded.split("|")
+        try:
+            if not self.communicator:
+                logger.warning(
+                    f"Cannot get pcomms for {self.name} because it has no communicator"
+                )
+                return
+            self.communicator.send(b"GET_PCOMMS")
+            time.sleep(0.1)
+            msg = self.communicator.receive(2048 * 8)
+            decoded = msg.decode().strip()
+            if decoded:
+                self.pcomms = decoded.split("|")
+        except TimeoutError:
+            logger.warning(f"Timeout while getting pcomms for {self.name}")
+        except UnicodeDecodeError:
+            logger.warning(f"Failed to decode pcomms response for {self.name}")
+        except Exception as e:
+            logger.warning(f"Failed to get pcomms for {self.name}: {e}")
 
 
 def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
@@ -51,8 +62,10 @@ def _get_required_field(dict, key) -> Any:
     return dict[key]
 
 
-def initialize_modules(cfg: dict[str, Any], cfg_file: Path) -> list[ModuleConnection]:
-    connections: list[ModuleConnection] = []
+def initialize_modules(
+    cfg: dict[str, Any], cfg_file: Path
+) -> list[ControlRoomModuleConnection]:
+    connections: list[ControlRoomModuleConnection] = []
 
     modules_cfg = cfg.get("modules", {})
     if not isinstance(modules_cfg, dict):
@@ -132,24 +145,13 @@ def initialize_modules(cfg: dict[str, Any], cfg_file: Path) -> list[ModuleConnec
                 "Currently only 'socket' connection is supported."
             )
 
-        # For dp modules we use a specialized connection class that can also
-        # get pcomms, for other modules we use the base ModuleConnection
-        if name.startswith("dp-") or module_key.startswith("dp-"):
-            conn = DPModuleConnection(
+        connections.append(
+            ControlRoomModuleConnection(
                 name=name,
                 launcher=launcher,
                 communicator=communicator,
             )
-        else:
-            connections.append(
-                ModuleConnection(
-                    name=name,
-                    launcher=launcher,
-                    communicator=communicator,
-                )
-            )
-        connections.append(conn)
-
+        )
     return connections
 
 

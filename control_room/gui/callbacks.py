@@ -5,13 +5,12 @@ from pathlib import Path
 from time import sleep
 
 import pylsl
-from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import Dash, ctx, html
 from dash.dependencies import Input, Output, State
 
 from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
-from control_room.utils.modules import DPModuleConnection
+from control_room.utils.modules import ControlRoomModuleConnection
 
 
 def is_ao_module(module_name: str) -> bool:
@@ -29,7 +28,7 @@ class PayloadError(KeyError):
     pass
 
 
-def get_module_endpoint(module: ModuleConnection) -> str:
+def get_module_endpoint(module: ControlRoomModuleConnection) -> str:
     """Format a stable module endpoint string for logs."""
 
     communicator = getattr(module, "communicator", None)
@@ -39,7 +38,7 @@ def get_module_endpoint(module: ModuleConnection) -> str:
 
 
 def add_callbacks(
-    app: Dash, modules: list[ModuleConnection], macros: dict | None = None
+    app: Dash, modules: list[ControlRoomModuleConnection], macros: dict | None = None
 ) -> Dash:
     """Add callbacks to a given app"""
     logfile = log_file_path
@@ -62,7 +61,7 @@ def add_callbacks(
 
 
 def add_json_verification_cb(
-    app: Dash, modules: list[ModuleConnection], macros: dict | None
+    app: Dash, modules: list[ControlRoomModuleConnection], macros: dict | None
 ) -> Dash:
     """
     Add a callback to the Dash app to verify JSON strings in input fields.
@@ -75,8 +74,8 @@ def add_json_verification_cb(
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
@@ -89,11 +88,11 @@ def add_json_verification_cb(
     """
     model_input_ids = []
     for m in modules:
-        if isinstance(m, DPModuleConnection):
+        if len(m.pcomms) > 0:
             for pcomm in m.pcomms:
                 model_input_ids.append(f"{m.name}|{pcomm}|input")
-        else:
-            model_input_ids.append(f"{m.name}|input")
+            else:
+                model_input_ids.append(f"{m.name}|input")
 
     if macros is not None:
         macros_input_ids = [
@@ -140,7 +139,7 @@ def add_json_verification_cb(
 
 def add_macros_sender(
     app: Dash,
-    modules: list[ModuleConnection],
+    modules: list[ControlRoomModuleConnection],
     macros: dict,
 ) -> Dash:
     """
@@ -156,8 +155,8 @@ def add_macros_sender(
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict
         A dictionary containing macro definitions to be used in the application.
@@ -277,7 +276,7 @@ def evaluate_templates(d: dict) -> dict:
     return d
 
 
-def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
+def add_pcomm_sender(app: Dash, modules: list[ControlRoomModuleConnection]) -> Dash:
     """
     Add a callback to the Dash app to send pcomm commands to modules.
 
@@ -289,8 +288,8 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
 
     Returns
@@ -307,14 +306,14 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
                 f"{mconn.name}|{pcomm}": Input(
                     f"{mconn.name}|{pcomm}|button", "n_clicks"
                 )
-                for mconn in [m for m in modules if isinstance(m, DPModuleConnection)]
+                for mconn in modules
                 for pcomm in mconn.pcomms
             }
         },
         state={
             "all_states": {
                 f"{mconn.name}|{pcomm}": State(f"{mconn.name}|{pcomm}|input", "value")
-                for mconn in [m for m in modules if isinstance(m, DPModuleConnection)]
+                for mconn in modules
                 for pcomm in mconn.pcomms
             }
         },
@@ -363,7 +362,9 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
 
 
 # TODO: rework this
-def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) -> Dash:
+def add_stats_update(
+    app: Dash, logfile: Path, modules: list[ControlRoomModuleConnection]
+) -> Dash:
     mod_outputs = [Output(f"{m.name}_check_box", "className") for m in modules]
 
     @app.callback(

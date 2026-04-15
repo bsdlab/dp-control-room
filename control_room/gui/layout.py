@@ -1,15 +1,17 @@
 import json
 
-from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import dcc, html
 
 from control_room.callbacks import is_ao_module
 
 # from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
+from control_room.utils.modules import ControlRoomModuleConnection
 
 
-def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div:
+def get_layout(
+    modules: list[ControlRoomModuleConnection], macros: dict | None
+) -> html.Div:
     """
     Generate the layout for the control room application.
 
@@ -19,8 +21,8 @@ def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div
 
     Parameters
     ----------
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
@@ -82,7 +84,7 @@ def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div
     )
 
 
-def create_module_server_info(module: ModuleConnection) -> html.Div:
+def create_module_server_info(module: ControlRoomModuleConnection) -> html.Div:
     # this will contain a parent box which is displayed in the header row
     # and some meta info text box, which is displayed only on hover
 
@@ -238,7 +240,7 @@ def get_log_stream_tile(logfile_name: str) -> html.Div:
     )
 
 
-def get_module_tile_layout(module: ModuleConnection) -> html.Div:
+def get_module_tile_layout(module: ControlRoomModuleConnection) -> html.Div:
     """
     Create the tile showing the individual modules
     """
@@ -266,7 +268,7 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
 
 
 def get_pcomm_button_input_pair(
-    pcomm_name: str, mod_name: str, conn: ModuleConnection
+    pcomm_name: str, mod_name: str, conn: ControlRoomModuleConnection
 ) -> html.Div:
     """
     Create pairs of buttons and inputs for each pcommand

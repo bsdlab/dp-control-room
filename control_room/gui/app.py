@@ -1,11 +1,11 @@
-from dareplane_utils.module_handling.module_connection import ModuleConnection
 from dash import Dash
 
 from control_room.gui.callbacks import add_callbacks
 from control_room.gui.layout import get_layout
+from control_room.utils.modules import ControlRoomModuleConnection
 
 
-def build_app(modules: list[ModuleConnection], macros: dict | None) -> Dash:
+def build_app(modules: list[ControlRoomModuleConnection], macros: dict | None) -> Dash:
     """
     Build and configure a Dash web application for the control room.
 
@@ -14,8 +14,8 @@ def build_app(modules: list[ModuleConnection], macros: dict | None) -> Dash:
 
     Parameters
     ----------
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
