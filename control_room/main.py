@@ -222,7 +222,7 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         # app.run_server(debug=True)
 
         # for a lightweight production server
-        # app.enable_dev_tools(debug=True)
+        app.enable_dev_tools(debug=True)
 
         def on_shutdown():
             """Close down server on shutdown signal, so we can cleanup properly."""

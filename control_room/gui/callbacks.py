@@ -313,6 +313,7 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
         msg = ""
 
         if ctx.triggered_id is not None:
+            logger.debug(f"button_id: {button_id} triggered")
             mod_name, pcomm_name, _ = button_id.split("|")
             module = modules_dict[mod_name]
             msg = pcomm_name
