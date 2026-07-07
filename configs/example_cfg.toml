@@ -9,17 +9,11 @@
 # 2 Set kind = 'python' or kind = 'exe', depending on how it should be launched
 #
 # 3 For python modules, set:
-#       - module = '<python.module.entrypoint>'   (runs as: python -m module)
 #       - cwd = '<path-to-module-root>'
 #   For exe modules, set:
 #       - path = '<path-to-executable>'
-#
-# 4 If your module should be connected via TCP socket, add a
-#    [modules.<name>.connection] table with:
-#       - type = 'socket'
 #       - ip, port
 #       - optionally: retry_after_s and max_connect_retries
-#    other connection types are not yet supported, but might be in the future
 #
 # 5 Optional:
 #       - args: passed to exe/python modules as command line args
@@ -47,6 +41,7 @@ port = 8080
 
 [modules.dp-mockup-streamer.kwargs] # additional kwargs to be passed to the module
 stream_name = 'mockup_EEG_stream'
+random_data = true
 
 
 # Another Python module

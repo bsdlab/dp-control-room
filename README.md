@@ -16,19 +16,25 @@ Configs have two important sections, one for the setup of single modules and ano
 
 Modules are sorted according to the technology they are written in. Currently only python modules get spawned up and are managed from the control_room automatically. Other modules can also be integrated, you just would have to start and step e.g. the `C` application manually. This will change in the future to allow similar treatment of non-python modules.
 
-In a typical config you specify a `type` (just used for labeling in the [GUI](#the-gui)), and a `port` and `ip` which are used to spawn each modules individual server at that location. Additionally you can pass `kwargs` to the servers creation.
+In a typical config you specify a `port` and `ip` which are used to spawn each modules individual server at that location. Additionally you can pass `kwargs` to the servers creation.
 
 ```toml
-[python]
-modules_root = '../'                                                            # path to the root if the modules
-# -------------------- Mockup Streamer ---------------------------------------
-[python.modules.dp_mockup_streamer]                                      # names of a module to be used (folder name)
-    type = 'io_data'
-    port = 8082                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-[python.modules.dp_mockup_streamer.kwargs]                               # kwargs to run the main script with
-    lsl_out_stream_name = 'mockup_EEG_stream'
-    random_data = true
+[modules]
+modules_root = '../../' # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
+
+# Example Python module
+[modules.dp-mockup-streamer]
+kind = 'python'
+# cwd = '../../dp-mockup-streamer' # optional, defaults to modules_root/<module_key>
+ip = '127.0.0.1'
+port = 8080
+# retry_after_s = 1
+# max_connect_retries = 5
+# custom_entry_point = 'api.server'  # api.server is the default for calling a python module basically via `python -m api.server` from within the module folder
+
+[modules.dp-mockup-streamer.kwargs] # additional kwargs to be passed to the module
+stream_name = 'mockup_EEG_stream'
+random_data = true
 ```
 
 _Note_ - there is no need to specify the commands a module is capable of doing. The control_room module will ask each other individual module for its capabilities by sending a `GET_PCOMMS` command to their servers, which on default will return all commands a module is capable of performing.
