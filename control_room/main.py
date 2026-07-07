@@ -16,6 +16,7 @@ from control_room.gui.app import build_app
 from control_room.utils.logging import logger
 from control_room.utils.modules import ControlRoomModuleConnection, initialize_modules
 from control_room.utils.network import wait_for_port
+from control_room.utils.config import check_and_transform_legacy_cfg
 
 # --- For backwards compatibility with python < 3.11
 try:
@@ -33,7 +34,7 @@ except ImportError:
 
     except ImportError:
         raise ImportError(
-            "Please install either use python > 3.11 or install `toml` library"
+            "Please install Python > 3.11 or install `toml` library"
             "to able to parse the config files."
         )
 
@@ -82,6 +83,8 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
     cfg_file = Path(setup_cfg_path).resolve()
     cfg = toml_load(cfg_file)
+
+    cfg = check_and_transform_legacy_cfg(cfg)
 
     connections: list[ControlRoomModuleConnection] = []
     log_server = psutil.Process(

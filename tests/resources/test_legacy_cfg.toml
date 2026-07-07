@@ -1,0 +1,12 @@
+[python]
+modules_root = '../../'
+
+[python.modules.dp-reaction-time]
+type = 'reaction-time'
+port = 8082
+ip = '127.0.0.1'
+
+[python.modules.dp-lsl-recording]
+type = 'dataio'
+port = 8084
+ip = '127.0.0.1'

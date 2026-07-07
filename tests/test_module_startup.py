@@ -17,7 +17,6 @@ def test_run_control_room():
     test_cfg_path = TEST_CFG_PATH
 
     cfg = tomllib.load(open(test_cfg_path, "rb"))
-    print(cfg)
 
     print("Sys executable:", sys.executable)
     # Start the control room in a subprocess, capturing stdout and stderr so we can debug if it fails
