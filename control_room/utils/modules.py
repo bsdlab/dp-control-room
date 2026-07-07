@@ -76,12 +76,10 @@ def initialize_modules(
 
     for module_key, module_cfg in modules:
         module_kind = _get_required_field(module_cfg, "kind").strip().lower()
-        name = str(module_cfg.get("name", module_key))
+        name = module_key  # for now always keep this equal to the key -> potentially allow for an overwrite later after checking that there is not interference with callbacks
 
         if module_kind == "python":
-            entry_point = str(
-                module_cfg.get("module", f"{module_key.replace('-', '_')}.main")
-            )
+            entry_point = str(module_cfg.get("custom_entry_point", "api.server"))
 
             if "cwd" in module_cfg:
                 cwd = _resolve_cfg_path(str(module_cfg["cwd"]), cfg_file)
@@ -123,10 +121,15 @@ def initialize_modules(
                 "Supported kinds: 'python', 'exe'."
             )
 
-        connection_cfg = module_cfg.get("connection")
-        if connection_cfg and connection_cfg.get("type") == "socket":
-            ip = str(_get_required_field(connection_cfg, "ip"))
-            port = int(_get_required_field(connection_cfg, "port"))
+        # For simplicity and backwards compatibility, we assume that a socket
+        # connection should be created when a module is configured with an
+        # ip and port.
+        conn_ip = module_cfg.get("ip", None)
+        conn_port = module_cfg.get("port", None)
+        if conn_ip is not None and conn_port is not None:
+            connection_cfg = module_cfg
+            ip = str(conn_ip)
+            port = int(conn_port)
             retry_after_s = float(connection_cfg.get("retry_after_s", 1.0))
             max_connect_retries = int(connection_cfg.get("max_connect_retries", 3))
             communicator = SocketCommunicator(
@@ -137,8 +140,12 @@ def initialize_modules(
                 max_connect_retries=max_connect_retries,
                 logger=logger,
             )
-        elif module_cfg.get("connection", None) is None:
-            communicator = None
+        elif (conn_ip is None and conn_port is not None) or (
+            conn_ip is not None and conn_port is None
+        ):
+            raise ValueError(
+                f"If either 'ip' or 'port' is set, both must be set. Got {ip=}, {port=}."  # type: ignore
+            )
         else:
             raise ValueError(
                 f"Unsupported connection type for modules.{module_key}. "

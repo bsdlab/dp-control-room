@@ -33,62 +33,46 @@
 # -----------------------------------------------------------------------------
 
 [modules]
-modules_root = '../../'  # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
+modules_root = '../../' # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
 
 # Example Python module
 [modules.dp-mockup-streamer]
 kind = 'python'
-name = 'dp-mockup-streamer'
-module = 'api.server'
-cwd = '../../dp-mockup-streamer'            
-
-# Socket connection settings for this module
-[modules.dp-mockup-streamer.connection]
-type = 'socket'
+# cwd = '../../dp-mockup-streamer' # optional, defaults to modules_root/<module_key>
 ip = '127.0.0.1'
 port = 8080
-retry_after_s = 1
-max_connect_retries = 5
+# retry_after_s = 1
+# max_connect_retries = 5
+# custom_entry_point = 'api.server'  # api.server is the default for calling a python module basically via `python -m api.server` from within the module folder
 
-[modules.dp-mockup-streamer.kwargs]
+[modules.dp-mockup-streamer.kwargs] # additional kwargs to be passed to the module
 stream_name = 'mockup_EEG_stream'
-ip = '127.0.0.1'
-port = 8080
 
 
 # Another Python module
 [modules.dp-passthrough]
 kind = 'python'
-name = 'dp-passthrough'
-module = 'api.server'
-cwd = '../../dp-passthrough'
-
-[modules.dp-passthrough.kwargs]
 ip = '127.0.0.1'
-port = 8083
+port = 8081
 
-[modules.dp-passthrough.connection]
-type = 'socket'
-ip = '127.0.0.1'
-port = 8083
 
 [macros]
 
 [macros.start_streaming]
-    name = 'START_STREAMING'
-    description = 'start streaming'
+name = 'START_STREAMING'
+description = 'start streaming'
 [macros.start_streaming.default_json]
-    stream_name = 'mockup_stream'
-    date_root = '../'
+stream_name = 'mockup_stream'
+date_root = '../'
 [macros.start_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'START']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+# [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
+com1 = ['dp-mockup-streamer', 'START']
+# com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
 
 [macros.stop_streaming]
-    name = 'STOP_STREAMING'
-    description = 'start streaming'
+name = 'STOP_STREAMING'
+description = 'start streaming'
 [macros.stop_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'STOP']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+# [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
+com1 = ['dp-mockup-streamer', 'STOP']
+# com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']

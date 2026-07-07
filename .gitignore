@@ -163,3 +163,4 @@ configs/
 _site/
 reference/
 objects.json
+uv.lock

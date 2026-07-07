@@ -10,38 +10,19 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture()
-def test_cfg_path():
-    import tomli_w
-
-    cfg_path = Path("./configs/example_cfg.toml")
-    cfg = tomllib.load(open(cfg_path, "rb"))
-
-    # Drop the dp-mockup-streamer module from the example script >> this can
-    # have very slow start up, and is not necessary for the tests here
-    modules_root = cfg["modules"].get("modules_root")
-    cfg["modules"] = {
-        "dp-passthrough": cfg["modules"]["dp-passthrough"],
-    }
-    if modules_root is not None:
-        cfg["modules"]["modules_root"] = modules_root
-
-    new_cfg_path = Path("./configs/pytest_cfg.toml")
-    tomli_w.dump(cfg, open(new_cfg_path, "wb"))
-
-    yield new_cfg_path
-
-    new_cfg_path.unlink()  # clean up the generated config file
+TEST_CFG_PATH = Path("./tests/resources/test_cfg.toml")
 
 
-def test_run_control_room(test_cfg_path):
-    cfg_path = test_cfg_path
-    cfg = tomllib.load(open(cfg_path, "rb"))
+def test_run_control_room():
+    test_cfg_path = TEST_CFG_PATH
+
+    cfg = tomllib.load(open(test_cfg_path, "rb"))
+    print(cfg)
 
     print("Sys executable:", sys.executable)
     # Start the control room in a subprocess, capturing stdout and stderr so we can debug if it fails
     proc = subprocess.Popen(
-        [sys.executable, "-m", "control_room.main", "--setup-cfg-path", cfg_path],
+        [sys.executable, "-m", "control_room.main", "--setup-cfg-path", test_cfg_path],
         # stdout=subprocess.PIPE,   # -- just have the STDOUT shown
         stderr=subprocess.STDOUT,
         text=True,
@@ -52,8 +33,8 @@ def test_run_control_room(test_cfg_path):
     print("Started control room subprocess, PID:", proc.pid)
     try:
         # Allow some time for the control room to start
-        print("Waiting for 20s, for control room to start")
-        time.sleep(20)
+        print("Waiting for 10s, for control room to start")
+        time.sleep(10)
 
         # Check if the subprocess is still running, if not, capture output and raise error
         rc = proc.poll()

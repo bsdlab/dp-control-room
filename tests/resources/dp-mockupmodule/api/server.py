@@ -1,5 +1,4 @@
 # A server implementation for testing purposes only
-
 import threading
 import time
 
@@ -27,37 +26,10 @@ def run_server(
         "GET_PCOMMS": "START|INIT|STOP|RUN_BLOCK",
     }
 
-    server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="control_room")
+    server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="mockup_module")
 
     # initialize to start the socket
     server.init_server(stop_event=stop_event)
-    # start processing of the server
-    server.start_listening()
-
-    return 0
-
-
-def run_slow_startup_server(
-    port: int = 8081,
-    ip: str = "127.0.0.1",
-    loglevel: int = 10,
-    stop_event: threading.Event = threading.Event(),
-):
-    logger.setLevel(loglevel)
-
-    pcommand_map = {
-        "START": test_print,
-        "SLOWSERVERTEST": lambda x: print("SLOWSERVERTEST"),
-    }
-
-    server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="control_room")
-
-    time.sleep(5)  # have this delay to test with a very slow server
-    logger.info("Slow server will start listening")
-
-    # initialize to start the socket
-    server.init_server(stop_event=stop_event)
-
     # start processing of the server
     server.start_listening()
 
