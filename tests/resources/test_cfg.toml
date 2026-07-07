@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------------------
+#
+# This is a config similar to the ./configs/example_cfg.toml, used to power the 
+# unit tests.
+#
+# -----------------------------------------------------------------------------
+
+[modules]
+modules_root = './tests/resources/'
+# Example Python module
+[modules.dp-mockupmodule]
+kind = 'python'
+ip = '127.0.0.1'
+port = 8080
+retry_after_s = 1
+max_connect_retries = 5

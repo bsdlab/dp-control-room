@@ -10,9 +10,11 @@ import threading
 from dataclasses import dataclass, field
 from socket import socket
 
-from control_room.connection import ModuleConnection
+from dareplane_utils.module_handling.communication import SocketCommunicator
+
 from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
 from control_room.utils.logging import logger
+from control_room.utils.modules import ControlRoomModuleConnection
 
 
 @dataclass
@@ -26,13 +28,15 @@ class CallbackBroker:
 
     Attributes
     ----------
-    mod_connections : dict[str, ModuleConnection]
+    mod_connections : dict[str, ControlRoomModuleConnection]
         A dictionary mapping module names to their connections.
     stop_event : threading.Event
         An event to signal the stopping of the callback listening loop.
     """
 
-    mod_connections: dict[str, ModuleConnection] = field(default_factory=dict)
+    mod_connections: dict[str, ControlRoomModuleConnection] = field(
+        default_factory=dict
+    )
     stop_event: threading.Event = threading.Event()
 
     def listen_for_callbacks(self):
@@ -53,7 +57,14 @@ class CallbackBroker:
             # modules need to be checked --> potentially create a whitelist
             # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
-                self.check_for_callback(mod_connection.socket_c, mod_name)
+                # We currently only do callbacks for modules connected via TCP
+                if (
+                    isinstance(mod_connection.communicator, SocketCommunicator)
+                    and mod_connection.communicator.socket_c is not None
+                ):
+                    self.check_for_callback(
+                        mod_connection.communicator.socket_c, mod_name
+                    )
 
     def check_for_callback(self, msocket: socket, mod_name: str):
         """
@@ -125,4 +136,4 @@ class CallbackBroker:
                         payload = make_ao_payload_from_json(payload)
 
                     cmd = pcomm + "|" + payload
-                    trg_mod.socket_c.sendall(cmd.encode())
+                    trg_mod.send_message(cmd.encode())
