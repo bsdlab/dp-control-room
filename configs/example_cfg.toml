@@ -7,6 +7,7 @@
 # 1 Add one module block under [modules.<your-module-name>]
 #
 # 2 Set kind = 'python' or kind = 'exe', depending on how it should be launched
+#   NOTE: kind = 'exe' is EXPERIMENTAL - the interface may still change.
 #
 # 3 For python modules, set:
 #       - cwd = '<path-to-module-root>'
@@ -19,7 +20,6 @@
 #       - args: passed to exe/python modules as command line args
 #       - kwargs: passed to python module as --key=value
 #       - python_executable: A specific python instance to launch the module with
-#       - name: UI/display name (defaults to module key)
 #
 # 6 Define macros (optional)
 #       - Macro commands allow you to execute certain commands directly 
@@ -49,6 +49,16 @@ random_data = true
 kind = 'python'
 ip = '127.0.0.1'
 port = 8081
+
+
+# Example of an executable module - EXPERIMENTAL, the interface may still change
+# [modules.dp-my-exe-module]
+# kind = 'exe'
+# path = '../dp-my-exe-module/build/my_module.exe' # required, the executable to launch
+# # cwd = '../dp-my-exe-module'                    # optional, working directory for the executable
+# # args = ['--some-flag']                         # optional, command line args
+# ip = '127.0.0.1'
+# port = 8082
 
 
 [macros]
