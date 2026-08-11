@@ -9,6 +9,7 @@ from pathlib import Path
 import psutil
 from dareplane_utils.module_handling.communication import SocketCommunicator
 from fire import Fire
+from waitress import wasyncore
 from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
@@ -85,6 +86,7 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
     cbb_th = None
     cbb_stop = None
     server = None
+    shutdown_requested = threading.Event()
 
     try:
         connections = initialize_modules(cfg, cfg_file)
@@ -121,27 +123,59 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         logger.info(
             f"CallbackBroker has following modules connected: {list(cbb.mod_connections.keys())}"
         )
-        cbb_th = threading.Thread(target=cbb.listen_for_callbacks)
+        # daemon, so a hanging broker can never keep the interpreter alive
+        cbb_th = threading.Thread(target=cbb.listen_for_callbacks, daemon=True)
         cbb_th.start()
 
         # Create the dash app
         app = build_app(connections, macros=cfg.get("macros", None))
 
-        def on_shutdown():
-            """Close down server on shutdown signal, so we can cleanup properly."""
-            if server:
-                server.close()
-
-        # Register signal handlers for graceful shutdown
-        # SIGBREAK is Windows-specific
-        if hasattr(signal, "SIGBREAK"):
-            signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())  # type: ignore
-        signal.signal(signal.SIGINT, lambda s, f: on_shutdown())
-        signal.signal(signal.SIGTERM, lambda s, f: on_shutdown())
-
         logger.info("Serving control room on port 8050")
         server = create_server(app.server, port=8050)
-        server.run()
+
+        def on_shutdown(*args):
+            """Request shutdown from within a signal handler.
+
+            Only a flag is set here and the asyncore loop is woken up. Closing
+            the sockets directly from the handler would pull them away from the
+            `select()` call the loop is blocked in, which raises an `OSError`.
+            The actual closing is done on the main thread once `run()` returned.
+            """
+            logger.info("Shutdown signal received, stopping the server ...")
+            shutdown_requested.set()
+            try:
+                # wakes up the `select()` of the asyncore loop
+                server.trigger.pull_trigger()
+            except Exception as e:
+                logger.error(f"Error while waking up the server loop: {e}")
+
+        # Register signal handlers for graceful shutdown
+        # SIGBREAK is Windows-specific and is what CTRL+Break sends
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, on_shutdown)  # type: ignore
+        signal.signal(signal.SIGINT, on_shutdown)
+        signal.signal(signal.SIGTERM, on_shutdown)
+
+        # `run()` blocks until the socket map is empty, so it is driven here in
+        # steps to be able to react to a shutdown request in between
+        while not shutdown_requested.is_set():
+            try:
+                wasyncore.loop(
+                    timeout=0.5, map=server._map, count=1, use_poll=server.adj.asyncore_use_poll
+                )
+            except KeyboardInterrupt:
+                # On Windows the KeyboardInterrupt can surface here instead of
+                # the signal handler being run to completion
+                shutdown_requested.set()
+            except OSError as e:
+                logger.debug(f"Server loop stopped with: {e}")
+                break
+
+        logger.debug("Closing server sockets")
+        try:
+            wasyncore.close_all(server._map, ignore_all=True)
+        except Exception as e:
+            logger.error(f"Error while closing server sockets: {e}")
 
         logger.info("Control room server has stopped.")
 

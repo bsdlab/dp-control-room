@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass, field
 from socket import socket
 
+from dareplane_utils.general.time import sleep_s
 from dareplane_utils.module_handling.communication import SocketCommunicator
 
 from control_room.gui.callbacks import is_ao_module, make_ao_payload_from_json
@@ -58,6 +59,9 @@ class CallbackBroker:
             # modules need to be checked --> potentially create a whitelist
             # of modules which are to be checked for callbacks.
             for mod_name, mod_connection in self.mod_connections.items():
+                if self.stop_event.is_set():
+                    break
+
                 # We currently only do callbacks for modules connected via TCP
                 if (
                     isinstance(mod_connection.communicator, SocketCommunicator)
@@ -66,6 +70,10 @@ class CallbackBroker:
                     self.check_for_callback(
                         mod_connection.communicator.socket_c, mod_name
                     )
+
+            # Yield briefly, so the main thread can process shutdown signals.
+            # Kept minimal to stay responsive for callbacks.
+            sleep_s(0.0005)
 
     def _consume_up_acks(self, msg: bytes, mod_name: str) -> bytes:
         """
@@ -97,7 +105,7 @@ class CallbackBroker:
             mod_connection = self.mod_connections.get(mod_name, None)
             if mod_connection is not None:
                 mod_connection.last_up_ack = time.time()
-            logger.debug(f"Received UP acknowledgement from {mod_name}")
+            # logger.debug(f"Received UP acknowledgement from {mod_name}")
 
         return stripped
 
