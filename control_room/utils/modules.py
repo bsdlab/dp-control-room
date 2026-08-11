@@ -24,7 +24,7 @@ class ControlRoomModuleConnection(ModuleConnection):
                     f"Cannot get pcomms for {self.name} because it has no communicator"
                 )
                 return
-            self.communicator.send(b"GET_PCOMMS")
+            self.communicator.send(b"GET_PCOMMS;")
             time.sleep(0.1)
             msg = self.communicator.receive(2048 * 8)
             decoded = msg.decode().strip()
@@ -36,6 +36,10 @@ class ControlRoomModuleConnection(ModuleConnection):
             logger.error(f"Failed to decode pcomms response for {self.name}")
         except Exception as e:
             logger.error(f"Failed to get pcomms for {self.name}: {e}")
+
+    def __post_init__(self):
+        # Populate the pcommands with what we get from the server
+        self.get_pcommands()
 
 
 def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
@@ -93,12 +97,17 @@ def initialize_modules(
                     "Either set module-specific 'cwd' or global 'modules.modules_root'."
                 )
 
+            launch_kwargs = dict(module_cfg.get("kwargs", {}))
+            for k in ["ip", "port"]:
+                if k in module_cfg.keys():
+                    launch_kwargs[k] = module_cfg[k]
+
             launcher = PythonLauncher(
                 entry_point=entry_point,
                 cwd=cwd,
                 executable=str(module_cfg.get("python_executable", sys.executable)),
                 args=list(module_cfg.get("args", [])),
-                kwargs=dict(module_cfg.get("kwargs", {})),
+                kwargs=launch_kwargs,
             )
         elif module_kind == "exe":
             exe_path = _resolve_cfg_path(
