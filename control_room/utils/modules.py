@@ -37,6 +37,35 @@ class ControlRoomModuleConnection(ModuleConnection):
         except Exception as e:
             logger.error(f"Failed to get pcomms for {self.name}: {e}")
 
+    def is_up(self, timeout_s: float = 0.1) -> bool:
+        """
+        Check whether the module's server is responsive.
+
+        Sends the `UP` command and waits for the server's `1` reply. A timeout
+        (or any other communication error) is interpreted as the module being
+        down.
+
+        Parameters
+        ----------
+        timeout_s : float
+            Time to wait for the reply before considering the module down.
+
+        Returns
+        -------
+        bool
+            True if the module replied to the `UP` command.
+        """
+        if not self.communicator:
+            return False
+
+        try:
+            self.send_message(b"UP")
+            time.sleep(timeout_s)
+            return self.communicator.receive(16).strip() == b"1"
+        except Exception as e:
+            logger.debug(f"Module {self.name} did not respond to UP: {e}")
+            return False
+
     def __post_init__(self):
         # Populate the pcommands with what we get from the server
         self.get_pcommands()

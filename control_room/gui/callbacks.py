@@ -399,26 +399,15 @@ def add_stats_update(
         else:
             log_str_msg = f"No logfile at {logfile}"
 
-        # check corrent up state
-        mod_class_names = []
+        # check current up state - a module which does not reply to `UP` in
+        # time is considered down
         classes = {
             "success": "module_check_box running_module_check_box",
             "fail": "module_check_box",
         }
-        mod_class_names = [classes["success"]] * len(modules)
-
-        # for m in modules:
-        #     try:
-        #         ret = m.socket_c.sendall('UP')
-        #         if ret == 1:
-        #             mod_class_names.append(classes['success'])
-        #         else:
-        #             mod_class_names.append(classes['fail'])
-        #     except Exception as e:
-        #         logger.debug(f"Failed communicating with {m.name} @ {m.ip}"
-        #                      f":{m.port} - {e=}")
-        #         mod_class_names.append(classes['fail'])
-        #
+        mod_class_names = [
+            classes["success"] if m.is_up() else classes["fail"] for m in modules
+        ]
 
         return [lsl_stream_msg, log_str_msg] + mod_class_names
 
