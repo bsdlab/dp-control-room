@@ -27,12 +27,12 @@
 # -----------------------------------------------------------------------------
 
 [modules]
-modules_root = '../../' # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
+modules_root = '../' # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
 
 # Example Python module
 [modules.dp-mockup-streamer]
 kind = 'python'
-# cwd = '../../dp-mockup-streamer' # optional, defaults to modules_root/<module_key>
+# cwd = '../dp-mockup-streamer' # optional, defaults to modules_root/<module_key>
 ip = '127.0.0.1'
 port = 8080
 # retry_after_s = 1

@@ -37,9 +37,15 @@ def check_and_transform_legacy_cfg(cfg: dict):
                 "\n" + "-" * 80 + "\n"
             )
 
-            cfg["modules"] = {}
-            for m in modules:
-                cfg["modules"][m] = modules[m] | {"kind": "python"}
+            cfg["modules"] = {m: mcfg | {"kind": "python"} for m, mcfg in modules.items()}
+
+            # modules_root lived under [python] in the legacy convention, but is
+            # looked up as modules.modules_root in the new one
+            modules_root = python_key.get("modules_root", None)
+            if modules_root:
+                cfg["modules"]["modules_root"] = modules_root
+
+            del cfg["python"]
 
             logger.warning("Created the following configs for modules:\n" + str(cfg))
 

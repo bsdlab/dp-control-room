@@ -44,20 +44,6 @@ logger.setLevel(10)
 SETUP_CFG_PATH: str = "./configs/example_cfg.toml"
 
 
-def test_dummy(debug: bool = True):
-    from tests.resources.tmodule import get_dummy_modules
-
-    cfg = toml_load(Path(SETUP_CFG_PATH))
-    modules = get_dummy_modules()
-    for m in modules:
-        m.get_pcommands()
-        m.start_socket_client()
-        print(m)
-
-    app = build_app(modules, macros=cfg.get("macros", None))  # type: ignore
-    app.run_server(debug=debug)
-
-
 def close_down_connections(mod_connections: list[ControlRoomModuleConnection]):
     """
     Close all ControlRoomModuleConnection instances.
@@ -140,16 +126,6 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
         # Create the dash app
         app = build_app(connections, macros=cfg.get("macros", None))
-
-        # Note: debug True will lead to conflicts with sockets already being used
-        # since dash will run the script to this point another time
-        # Use the test_dummy for GUI development instead
-
-        # for the debugging Flask server
-        # app.run_server(debug=True)
-
-        # for a lightweight production server
-        # app.enable_dev_tools(debug=True)
 
         def on_shutdown():
             """Close down server on shutdown signal, so we can cleanup properly."""
