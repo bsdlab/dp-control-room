@@ -7,6 +7,7 @@
 # Put this handling into another thread.
 
 import threading
+import time
 from dataclasses import dataclass, field
 from socket import socket
 
@@ -66,6 +67,40 @@ class CallbackBroker:
                         mod_connection.communicator.socket_c, mod_name
                     )
 
+    def _consume_up_acks(self, msg: bytes, mod_name: str) -> bytes:
+        """
+        Strip `UP` acknowledgements from a received message.
+
+        Modules answer the `UP` command with a plain `1`. Since the broker reads
+        from the same socket, it picks these up as well. They are recorded as
+        liveness information and removed, so only actual callbacks remain.
+
+        Parameters
+        ----------
+        msg : bytes
+            The raw message read from the module's socket.
+        mod_name : str
+            Name of the module the message was read from.
+
+        Returns
+        -------
+        bytes
+            The message with all `UP` acknowledgements removed.
+        """
+        if b"1" not in msg:
+            return msg
+
+        # an ack may arrive concatenated with a real callback, so only strip the
+        # leading/trailing `1`s and keep the remainder for routing
+        stripped = msg.strip(b"1")
+        if stripped != msg:
+            mod_connection = self.mod_connections.get(mod_name, None)
+            if mod_connection is not None:
+                mod_connection.last_up_ack = time.time()
+            logger.debug(f"Received UP acknowledgement from {mod_name}")
+
+        return stripped
+
     def check_for_callback(self, msocket: socket, mod_name: str):
         """
         Check for callbacks on the given socket.
@@ -104,6 +139,13 @@ class CallbackBroker:
         msg = msg.replace(b"\xc2", b"")
 
         if msg != b"":
+            # The `UP` command is answered with a plain `1` by the module
+            # servers. This is a liveness acknowledgement and not a callback to
+            # be routed to another module.
+            msg = self._consume_up_acks(msg, mod_name)
+            if msg == b"":
+                return
+
             logger.debug(f"Received callback {msg=}")
             msg_arr = msg.decode("ascii").split("|")
             logger.info(f"{msg_arr=}")

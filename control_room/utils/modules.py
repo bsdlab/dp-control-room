@@ -17,6 +17,10 @@ class ControlRoomModuleConnection(ModuleConnection):
 
     pcomms: list[str] = field(default_factory=list)
 
+    # time of the last `UP` acknowledgement, set by the CallbackBroker which
+    # reads from the same socket as `is_up`
+    last_up_ack: float = 0.0
+
     def get_pcommands(self) -> None:
         try:
             if not self.communicator:
@@ -41,27 +45,45 @@ class ControlRoomModuleConnection(ModuleConnection):
         """
         Check whether the module's server is responsive.
 
-        Sends the `UP` command and waits for the server's `1` reply. A timeout
-        (or any other communication error) is interpreted as the module being
-        down.
+        Sends the `UP` command and waits for the module's `1` acknowledgement.
+        The reply is not read here directly: while the CallbackBroker is running
+        it reads from the same socket, so the acknowledgement is recorded by the
+        broker via `last_up_ack`. If no broker is running, the reply is read
+        from the socket instead. A missing acknowledgement within `timeout_s`
+        is interpreted as the module being down.
 
         Parameters
         ----------
         timeout_s : float
-            Time to wait for the reply before considering the module down.
+            Time to wait for the acknowledgement before considering the module down.
 
         Returns
         -------
         bool
-            True if the module replied to the `UP` command.
+            True if the module acknowledged the `UP` command.
         """
         if not self.communicator:
             return False
 
         try:
+            sent_at = time.time()
             self.send_message(b"UP")
-            time.sleep(timeout_s)
-            return self.communicator.receive(16).strip() == b"1"
+
+            deadline = sent_at + timeout_s
+            while time.time() < deadline:
+                if self.last_up_ack >= sent_at:
+                    return True
+
+                # no broker consuming the socket -> read the reply ourselves
+                try:
+                    if b"1" in self.communicator.receive(16):
+                        return True
+                except Exception:
+                    pass
+
+                time.sleep(0.005)
+
+            return False
         except Exception as e:
             logger.debug(f"Module {self.name} did not respond to UP: {e}")
             return False
