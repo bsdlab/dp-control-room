@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------------------
+#
+# Legacy convention counterpart of ./test_cfg.toml, i.e. the same setup
+# expressed as [python.modules.<name>]. Used to assert that the legacy parser
+# yields a config equivalent to the new convention.
+#
+# -----------------------------------------------------------------------------
+
+[python]
+modules_root = './tests/resources/'
+
+[python.modules.dp-mockupmodule]
+ip = '127.0.0.1'
+port = 8080
+retry_after_s = 1
+max_connect_retries = 5

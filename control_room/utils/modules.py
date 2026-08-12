@@ -17,6 +17,10 @@ class ControlRoomModuleConnection(ModuleConnection):
 
     pcomms: list[str] = field(default_factory=list)
 
+    # time of the last `UP` acknowledgement, set by the CallbackBroker which
+    # reads from the same socket as `is_up`
+    last_up_ack: float = 0.0
+
     def get_pcommands(self) -> None:
         try:
             if not self.communicator:
@@ -24,7 +28,7 @@ class ControlRoomModuleConnection(ModuleConnection):
                     f"Cannot get pcomms for {self.name} because it has no communicator"
                 )
                 return
-            self.communicator.send(b"GET_PCOMMS")
+            self.communicator.send(b"GET_PCOMMS;")
             time.sleep(0.1)
             msg = self.communicator.receive(2048 * 8)
             decoded = msg.decode().strip()
@@ -36,6 +40,57 @@ class ControlRoomModuleConnection(ModuleConnection):
             logger.error(f"Failed to decode pcomms response for {self.name}")
         except Exception as e:
             logger.error(f"Failed to get pcomms for {self.name}: {e}")
+
+    def is_up(self, timeout_s: float = 0.1) -> bool:
+        """
+        Check whether the module's server is responsive.
+
+        Sends the `UP` command and waits for the module's `1` acknowledgement.
+        The reply is not read here directly: while the CallbackBroker is running
+        it reads from the same socket, so the acknowledgement is recorded by the
+        broker via `last_up_ack`. If no broker is running, the reply is read
+        from the socket instead. A missing acknowledgement within `timeout_s`
+        is interpreted as the module being down.
+
+        Parameters
+        ----------
+        timeout_s : float
+            Time to wait for the acknowledgement before considering the module down.
+
+        Returns
+        -------
+        bool
+            True if the module acknowledged the `UP` command.
+        """
+        if not self.communicator:
+            return False
+
+        try:
+            sent_at = time.time()
+            self.send_message(b"UP")
+
+            deadline = sent_at + timeout_s
+            while time.time() < deadline:
+                if self.last_up_ack >= sent_at:
+                    return True
+
+                # no broker consuming the socket -> read the reply ourselves
+                try:
+                    if b"1" in self.communicator.receive(16):
+                        return True
+                except Exception:
+                    pass
+
+                time.sleep(0.005)
+
+            return False
+        except Exception as e:
+            logger.debug(f"Module {self.name} did not respond to UP: {e}")
+            return False
+
+    def __post_init__(self):
+        # Populate the pcommands with what we get from the server
+        self.get_pcommands()
 
 
 def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
@@ -93,12 +148,17 @@ def initialize_modules(
                     "Either set module-specific 'cwd' or global 'modules.modules_root'."
                 )
 
+            launch_kwargs = dict(module_cfg.get("kwargs", {}))
+            for k in ["ip", "port"]:
+                if k in module_cfg.keys():
+                    launch_kwargs[k] = module_cfg[k]
+
             launcher = PythonLauncher(
                 entry_point=entry_point,
                 cwd=cwd,
                 executable=str(module_cfg.get("python_executable", sys.executable)),
                 args=list(module_cfg.get("args", [])),
-                kwargs=dict(module_cfg.get("kwargs", {})),
+                kwargs=launch_kwargs,
             )
         elif module_kind == "exe":
             exe_path = _resolve_cfg_path(
