@@ -10,6 +10,10 @@ from dareplane_utils.module_handling.module_connection import ModuleConnection
 
 from control_room.utils.logging import logger
 
+# infrastructure pcomms reported by every module, but not meant to be
+# triggered manually from the GUI
+GUI_HIDDEN_PCOMMS = frozenset({"GET_PCOMMS", "UP"})
+
 
 @dataclass
 class ControlRoomModuleConnection(ModuleConnection):
@@ -20,6 +24,16 @@ class ControlRoomModuleConnection(ModuleConnection):
     # time of the last `UP` acknowledgement, set by the CallbackBroker which
     # reads from the same socket as `is_up`
     last_up_ack: float = 0.0
+
+    @property
+    def gui_pcomms(self) -> list[str]:
+        """Pcomms which should be exposed as buttons in the GUI.
+
+        `GET_PCOMMS` and `UP` are part of every module's primary command set,
+        but they are infrastructure commands used by the control room itself
+        and are therefore not shown to the user.
+        """
+        return [pc for pc in self.pcomms if pc not in GUI_HIDDEN_PCOMMS]
 
     def get_pcommands(self) -> None:
         try:
