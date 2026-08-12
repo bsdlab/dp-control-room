@@ -24,7 +24,6 @@ def run_server(
 
     pcommand_map = {
         "START": test_print,
-        "GET_PCOMMS": "START|INIT|STOP|RUN_BLOCK",
     }
 
     server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="control_room")

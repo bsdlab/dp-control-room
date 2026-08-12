@@ -88,8 +88,8 @@ def add_json_verification_cb(
     """
     model_input_ids = []
     for m in modules:
-        if len(m.pcomms) > 0:
-            for pcomm in m.pcomms:
+        if len(m.gui_pcomms) > 0:
+            for pcomm in m.gui_pcomms:
                 model_input_ids.append(f"{m.name}|{pcomm}|input")
             else:
                 model_input_ids.append(f"{m.name}|input")
@@ -307,14 +307,14 @@ def add_pcomm_sender(app: Dash, modules: list[ControlRoomModuleConnection]) -> D
                     f"{mconn.name}|{pcomm}|button", "n_clicks"
                 )
                 for mconn in modules
-                for pcomm in mconn.pcomms
+                for pcomm in mconn.gui_pcomms
             }
         },
         state={
             "all_states": {
                 f"{mconn.name}|{pcomm}": State(f"{mconn.name}|{pcomm}|input", "value")
                 for mconn in modules
-                for pcomm in mconn.pcomms
+                for pcomm in mconn.gui_pcomms
             }
         },
     )

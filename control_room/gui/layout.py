@@ -260,7 +260,7 @@ def get_module_tile_layout(module: ControlRoomModuleConnection) -> html.Div:
                 className="tile_pcomms",
                 children=[
                     get_pcomm_button_input_pair(pc, module.name, module)
-                    for pc in module.pcomms
+                    for pc in module.gui_pcomms
                 ],
             ),
         ],
