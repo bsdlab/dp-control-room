@@ -1,0 +1,47 @@
+# -------------------- EXE ---------------------------------------
+[exe]
+[exe.modules.dp-ao-communication]
+    # Currently, we need to manually ensure that the configs file in the dareplane-ao-communication/configs folder has the correct values
+    type = 'io_data'
+    path = '../dp-ao-communication/build/ao_comm.exe'
+    ip = '127.0.0.1'
+    port = 8081
+[exe.modules.dp-ao-communication.pcomms]
+    # add the available pcomms and default parameters - doing it manually to not require the server to implement a get_pcomms yet
+    STARTREC = ''
+    STOPREC = ''
+    STARTSTIM = '{"StimChannel": 10273, "FirstPhaseDelay_mS": 0, "FirstPhaseAmpl_mA": -0.5, "FirstPhaseWidth_mS": 0.06, "SecondPhaseDelay_mS": 0, "SecondPhaseAmpl_mA": 0.5, "SecondPhaseWidth_mS": 0.06, "Freq_hZ": 130, "Duration_sec": 2000, "ReturnChannel": 10276}'
+    STOPSTIM = '{"StimChannel": 10273}'
+    SETPATH = '{"Path": "c:\\Surgeries_Data\\VPtest\\"}'
+    SETSAVENAME = '{"fname": "block1_resting_OFF"}'
+
+# -------------------- PYTHON ---------------------------------------
+[python]
+modules_root = '../'
+
+# -------------------- paradigm ---------------------------------------
+[python.modules.dp-copydraw]
+    type = 'paradigm'
+    port = 8084
+    ip = '127.0.0.1'
+
+
+
+# ---------------- MACROS ---------------------------------------
+[macros]
+
+[macros.start_recording]
+name = 'START_RECORDINGS'
+description = 'start all recordings'
+[macros.start_recording.default_json]
+block_nr = 1
+stim = 'OFF'
+fname = 'STIM_$<stim>_copydraw_block_$<block_nr>'
+data_root = 'D:/data/dareplane/VPtest'
+[macros.start_recording.cmds]
+# [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
+com1 = ['dp-ao-communication', 'STARTREC']
+com7 = ['dp-copydraw', 'START_BLOCK', 'block_nr=block_nr']
+
+
+
