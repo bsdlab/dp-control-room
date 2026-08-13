@@ -56,6 +56,9 @@ def check_and_transform_legacy_cfg(cfg: dict):
         if modules_root:
             new_cfg["modules"]["modules_root"] = modules_root
 
+    if "macros" in cfg.keys():
+        new_cfg["macros"] = cfg["macros"]
+
     return new_cfg
 
 

@@ -20,7 +20,7 @@ GUI_HIDDEN_PCOMMS = frozenset({"GET_PCOMMS", "UP"})
 
 
 class NoopLauncher(Launcher):
-    process: int = 0  # TODO this should be part of the Launcher ABC (or use protocols all together), additionaly the NoopLauncher should be intergrated with the dareplane_utils for backwards compatibility
+    process: None = None  # TODO this should be part of the Launcher ABC (or use protocols all together), additionaly the NoopLauncher should be intergrated with the dareplane_utils for backwards compatibility
 
     def launch(self, relaunch: bool = False, **kwargs):
         pass
