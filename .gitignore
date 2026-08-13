@@ -156,6 +156,7 @@ cython_debug/
 
 configs/
 !configs/example_cfg.toml
+!configs/copydraw_ao_only.toml
 
 
 # quarto related
