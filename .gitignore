@@ -154,7 +154,7 @@ cython_debug/
 
 .idea/
 
-configs/
+configs/*
 !configs/example_cfg.toml
 !configs/copydraw_ao_only.toml
 
