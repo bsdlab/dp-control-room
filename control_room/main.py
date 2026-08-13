@@ -73,7 +73,6 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
     cfg = check_and_transform_legacy_cfg(cfg)
 
-    connections: list[ControlRoomModuleConnection] = []
     log_server = psutil.Process(
         subprocess.Popen(
             [sys.executable, "-m", "control_room.utils.logserver"],
@@ -83,10 +82,9 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
     wait_for_port(port=9020, timeout=5)  # wait for log server to be ready
 
     logger.info(f"Opening control room with configuration: {setup_cfg_path}")
-    cbb_th = None
-    cbb_stop = None
-    server = None
     shutdown_requested = threading.Event()
+
+    cbb_th: threading.Thread | None = None  # used in the finally
 
     try:
         connections = initialize_modules(cfg, cfg_file)
@@ -161,7 +159,10 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         while not shutdown_requested.is_set():
             try:
                 wasyncore.loop(
-                    timeout=0.5, map=server._map, count=1, use_poll=server.adj.asyncore_use_poll
+                    timeout=0.5,
+                    map=server._map,
+                    count=1,
+                    use_poll=server.adj.asyncore_use_poll,
                 )
             except KeyboardInterrupt:
                 # On Windows the KeyboardInterrupt can surface here instead of

@@ -5,7 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from dareplane_utils.module_handling.communication import SocketCommunicator
-from dareplane_utils.module_handling.launcher import ExeLauncher, PythonLauncher
+from dareplane_utils.module_handling.launcher import (
+    ExeLauncher,
+    PythonLauncher,
+    Launcher,
+)
 from dareplane_utils.module_handling.module_connection import ModuleConnection
 
 from control_room.utils.logging import logger
@@ -15,11 +19,22 @@ from control_room.utils.logging import logger
 GUI_HIDDEN_PCOMMS = frozenset({"GET_PCOMMS", "UP"})
 
 
+class NoopLauncher(Launcher):
+    process: int = 0  # TODO this should be part of the Launcher ABC (or use protocols all together), additionaly the NoopLauncher should be intergrated with the dareplane_utils for backwards compatibility
+
+    def launch(self, relaunch: bool = False, **kwargs):
+        pass
+
+    def terminate(self):
+        pass
+
+
 @dataclass
 class ControlRoomModuleConnection(ModuleConnection):
     """ModuleConection subclass that adds dp-specific functions such as getting pcomms."""
 
     pcomms: list[str] = field(default_factory=list)
+    pcomms_defaults: dict | None = None  # PCOMMS stemming from the config
 
     # time of the last `UP` acknowledgement, set by the CallbackBroker which
     # reads from the same socket as `is_up`
@@ -107,6 +122,16 @@ class ControlRoomModuleConnection(ModuleConnection):
         self.get_pcommands()
 
 
+# Needed for connections which are not managing any processes but are network conncetions only
+@dataclass
+class ControlRoomModuleConnectionConnectOnly(ControlRoomModuleConnection):
+    def get_pcommands(self):
+        self.pcomms = list(self.pcomms_defaults.keys())
+
+    def is_up(self, timeout_s: float = 2):
+        return True
+
+
 def _resolve_cfg_path(path_value: str, cfg_file: Path) -> Path:
     path = Path(path_value).expanduser()
     if path.is_absolute():
@@ -189,6 +214,11 @@ def initialize_modules(
                 args=list(module_cfg.get("args", [])),
                 cwd=exe_cwd,
             )
+        elif module_kind == "conn_only":
+            logger.debug(
+                f"{name} is a connection only module. Not lauching any process."
+            )
+            launcher: Launcher = NoopLauncher()
         else:
             raise ValueError(
                 f"Unsupported kind '{module_kind}' for modules.{module_key}. "
@@ -226,13 +256,27 @@ def initialize_modules(
                 "Currently only 'socket' connection is supported."
             )
 
-        connections.append(
-            ControlRoomModuleConnection(
+        cfg_pcomms = module_cfg.get("pcomms", None)
+        # to use default values is provided in the config
+
+        if module_kind == "conn_only":
+            connection = ControlRoomModuleConnectionConnectOnly(
                 name=name,
                 launcher=launcher,
                 communicator=communicator,
+                pcomms_defaults=cfg_pcomms,
             )
-        )
+
+        else:
+            connection = ControlRoomModuleConnection(
+                name=name,
+                launcher=launcher,
+                communicator=communicator,
+                pcomms_defaults=cfg_pcomms,
+            )
+
+        connections.append(connection)
+
     return connections
 
 
