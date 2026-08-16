@@ -52,7 +52,11 @@ def test_dummy(debug: bool = True):
         m.start_socket_client()
         print(m)
 
-    app = build_app(modules, macros=cfg.get("macros", None))  # type: ignore
+    app = build_app(
+        modules,
+        macros=cfg.get("macros", None),  # type: ignore
+        layout_cfg=cfg.get("layout", None),
+    )
     app.run_server(debug=debug)
 
 
@@ -212,7 +216,11 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         cbb_th.start()
 
         # Create the dash app
-        app = build_app(connections, macros=cfg.get("macros", None))
+        app = build_app(
+            connections,
+            macros=cfg.get("macros", None),
+            layout_cfg=cfg.get("layout", None),
+        )
 
         # Note: debug True will lead to conflicts with sockets already being used
         # since dash will run the script to this point another time

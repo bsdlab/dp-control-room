@@ -22,9 +22,19 @@
 
 @import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
 
+html,
 body {
+  height: 100%;
   margin: 0;
   background-color: var(--bg_primary);
+}
+
+#control_room_app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  /* font-family: 'Fira Code', sans-serif; */
+  font-family: sans-serif;
 }
 
 #header_row {
@@ -33,11 +43,6 @@ body {
 
 .header_icon {
   filter: var(--filter_header_color);
-}
-
-#control_room_app {
-  /* font-family: 'Fira Code', sans-serif; */
-  font-family: sans-serif;
 }
 
 #control_room_icon {
@@ -59,30 +64,76 @@ body {
 
 #control_room_body {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: 20px;
 }
 
 .lsl_and_log {
-  width: 50%;
-  position: relative;
-  top: 20px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-/* NOTE this currently is not nice: -> a better solution would be to fix */
-/* the rest of the layout and have this element scroll */
+#log_stream_tile {
+  flex: 1 1 0%;
+}
+
+#x_divider {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background-color: transparent;
+}
+
+#x_divider:hover {
+  background-color: var(--light_gray);
+}
+
+#y_divider_left {
+  flex: 0 0 6px;
+  cursor: row-resize;
+  background-color: transparent;
+}
+
+#y_divider_left:hover {
+  background-color: var(--light_gray);
+}
+
 .module_tiles {
-  position: absolute;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+#macros_div {
+  flex: 0 0 auto;
+  max-height: 85%;
+  min-height: 0;
   overflow-y: auto;
-  left: 50%;
-  top: 60px;
-  right: 5px;
-  bottom: 0;
+}
+
+#modules_pane {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#y_divider_right {
+  flex: 0 0 6px;
+  cursor: row-resize;
+  background-color: transparent;
+}
+
+#y_divider_right:hover {
+  background-color: var(--light_gray);
 }
 
 #lsl_stream_tile,
 #log_stream_tile {
+  min-height: 0;
   border: solid var(--bg_tile);
   margin: 0rem 0.5rem 0.5rem 0.5rem;
-  height: 500px;
   border-radius: 5px;
 }
 

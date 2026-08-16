@@ -8,8 +8,22 @@ from control_room.connection import ModuleConnection
 # from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
 
+# Default layout state for the control room GUI.
+# Horizontally, the GUI is split into two sections, which each have a vertical split.
+# The left side contains the LSL streams and the log file, while the right side contains the macros and module tiles.
+# The layout state is defined in terms of percentages of the total width/height
+DEFAULT_LAYOUT_STATE = {
+    "x_div": 50,
+    "y_div_left": 50,
+    "y_div_right": None,  # Automatically sized to content if not specified
+}
 
-def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div:
+
+def get_layout(
+    modules: list[ModuleConnection],
+    macros: dict | None,
+    layout_cfg: dict | None = None,
+) -> html.Div:
     """
     Generate the layout for the control room application.
 
@@ -25,6 +39,9 @@ def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
         If None, no macros are used.
+    layout_cfg : dict | None
+        Optional configuration dictionary from the config file, giving the initial
+        pane-size ratios. Falls back to a hardcoded default if not given.
 
     Returns
     -------
@@ -33,8 +50,24 @@ def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div
     """
     logfile = log_file_path.stem + log_file_path.suffix
 
-    module_tiles = [] if macros is None else [create_macro_tile(macros)]
-    module_tiles += [get_module_tile_layout(mod) for mod in modules]
+    module_tiles = [get_module_tile_layout(mod) for mod in modules]
+
+    # Override the default layout state with any provided configuration
+    layout_state = {**DEFAULT_LAYOUT_STATE}
+    if layout_cfg is not None:
+        layout_state.update(layout_cfg)
+
+    if macros is not None:
+        right_col = [
+            create_macro_tile(macros, height=layout_state.get("y_div_right")),
+            html.Div(id="y_divider_right"),
+            html.Div(
+                id="modules_pane",
+                children=module_tiles,
+            ),
+        ]
+    else:
+        right_col = [html.Div(id="modules_pane", children=module_tiles)]
 
     return html.Div(
         id="control_room_app",
@@ -61,16 +94,23 @@ def get_layout(modules: list[ModuleConnection], macros: dict | None) -> html.Div
                     html.Div(
                         id="lsl_and_log_div",
                         className="lsl_and_log",
+                        style={"flexBasis": f"{layout_state['x_div']}%"}
+                        if layout_state["x_div"] is not None
+                        else {},
                         children=[
-                            get_lsl_streams_tile(),
-                            get_log_stream_tile(logfile),
+                            get_lsl_streams_tile(height=layout_state["y_div_left"]),
+                            html.Div(id="y_divider_left"),
+                            get_log_stream_tile(
+                                logfile_name=logfile, height=None
+                            ),  # Automatically sized to fill remaining space
                         ],
                     ),
+                    html.Div(id="x_divider"),
                     # right side
                     html.Div(
                         id="module_tile_div",
                         className="module_tiles",
-                        children=module_tiles,
+                        children=right_col,
                     ),
                     # A timer for the log reading and the lsl fetch
                     dcc.Interval(id="interval_3s", interval=3 * 1000, n_intervals=0),
@@ -93,7 +133,7 @@ def create_module_server_info(module: ModuleConnection) -> html.Div:
     )
 
 
-def create_macro_tile(macros: dict) -> html.Div:
+def create_macro_tile(macros: dict, height: float | None) -> html.Div:
     """
     Create a tile containing buttons for each macro.
 
@@ -107,6 +147,8 @@ def create_macro_tile(macros: dict) -> html.Div:
         A dictionary containing macro definitions. Each key-value pair in the dictionary
         represents a macro, where the key is the macro name and the value is a dictionary
         containing macro-specific configurations.
+    height : float | None
+        Optional height for the tile. If None, the height will be automatically sized.
 
     Returns
     -------
@@ -116,6 +158,7 @@ def create_macro_tile(macros: dict) -> html.Div:
     layout = html.Div(
         id="macros_div",
         className="module_tile",
+        style={"flexBasis": f"{height}%"} if height is not None else {},
         children=[
             # the header row
             html.Div(
@@ -182,13 +225,14 @@ def get_macro_button_input_pair(mc: dict) -> html.Div:
     )
 
 
-def get_lsl_streams_tile() -> html.Div:
+def get_lsl_streams_tile(height: float | None) -> html.Div:
     """
     Create the tile showing the active LSL streams
     """
     return html.Div(
         id="lsl_stream_tile",
         className="tile",
+        style={"flexBasis": f"{height}%"} if height is not None else {},
         children=[
             html.Div(
                 children=[
@@ -210,13 +254,14 @@ def get_lsl_streams_tile() -> html.Div:
     )
 
 
-def get_log_stream_tile(logfile_name: str) -> html.Div:
+def get_log_stream_tile(logfile_name: str, height: float | None) -> html.Div:
     """
     Create the tile showing the last lines of the log file
     """
     return html.Div(
         id="log_stream_tile",
         className="tile",
+        style={"flexBasis": f"{height}%"} if height is not None else {},
         children=[
             html.Div(
                 children=[
