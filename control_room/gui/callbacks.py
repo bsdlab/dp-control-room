@@ -8,9 +8,9 @@ import pylsl
 from dash import Dash, ctx, html
 from dash.dependencies import Input, Output, State
 
-from control_room.connection import ModuleConnection
 from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
+from control_room.utils.modules import ControlRoomModuleConnection
 
 
 def is_ao_module(module_name: str) -> bool:
@@ -28,8 +28,17 @@ class PayloadError(KeyError):
     pass
 
 
+def get_module_endpoint(module: ControlRoomModuleConnection) -> str:
+    """Format a stable module endpoint string for logs."""
+
+    communicator = getattr(module, "communicator", None)
+    ip = getattr(communicator, "ip", "?")
+    port = getattr(communicator, "port", "?")
+    return f"{module.name}@{ip}:{port}"
+
+
 def add_callbacks(
-    app: Dash, modules: list[ModuleConnection], macros: dict | None = None
+    app: Dash, modules: list[ControlRoomModuleConnection], macros: dict | None = None
 ) -> Dash:
     """Add callbacks to a given app"""
     logfile = log_file_path
@@ -52,7 +61,7 @@ def add_callbacks(
 
 
 def add_json_verification_cb(
-    app: Dash, modules: list[ModuleConnection], macros: dict | None
+    app: Dash, modules: list[ControlRoomModuleConnection], macros: dict | None
 ) -> Dash:
     """
     Add a callback to the Dash app to verify JSON strings in input fields.
@@ -65,8 +74,8 @@ def add_json_verification_cb(
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
@@ -77,10 +86,13 @@ def add_json_verification_cb(
     Dash
         The Dash application with the added callback.
     """
-
-    model_input_ids = [
-        f"{mconn.name}|{pcomm}|input" for mconn in modules for pcomm in mconn.pcomms
-    ]
+    model_input_ids = []
+    for m in modules:
+        if len(m.gui_pcomms) > 0:
+            for pcomm in m.gui_pcomms:
+                model_input_ids.append(f"{m.name}|{pcomm}|input")
+            else:
+                model_input_ids.append(f"{m.name}|input")
 
     if macros is not None:
         macros_input_ids = [
@@ -127,7 +139,7 @@ def add_json_verification_cb(
 
 def add_macros_sender(
     app: Dash,
-    modules: list[ModuleConnection],
+    modules: list[ControlRoomModuleConnection],
     macros: dict,
 ) -> Dash:
     """
@@ -143,8 +155,8 @@ def add_macros_sender(
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict
         A dictionary containing macro definitions to be used in the application.
@@ -226,9 +238,7 @@ def add_macros_sender(
 
                     msg = msg + "|" + payload_str
 
-                logger.debug(
-                    f"Sending {msg=} to {module.name}@{module.ip}:{module.port}"
-                )
+                logger.debug(f"Sending {msg=} to {get_module_endpoint(module)}")
                 if ";" in msg:
                     logger.error(
                         f"Found a semi-colon in {msg=} - this is a reserved character please use characters other than `;`"
@@ -236,11 +246,11 @@ def add_macros_sender(
                 if is_ao_module(module.name):
                     # keep the old message structure until the AO module
                     # is properly integrated
-                    module.socket_c.sendall(msg.encode())
+                    module.send_message(msg.encode())
                     msg = msg + ";"
                 else:
                     msg = msg + ";"  # add semi-colon to separate commands
-                    module.socket_c.sendall(msg.encode())
+                    module.send_message(msg.encode())
 
                 msgs += msg
 
@@ -266,7 +276,7 @@ def evaluate_templates(d: dict) -> dict:
     return d
 
 
-def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
+def add_pcomm_sender(app: Dash, modules: list[ControlRoomModuleConnection]) -> Dash:
     """
     Add a callback to the Dash app to send pcomm commands to modules.
 
@@ -278,8 +288,8 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
     ----------
     app : Dash
         The Dash application to which the callback will be added.
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
 
     Returns
@@ -297,26 +307,40 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
                     f"{mconn.name}|{pcomm}|button", "n_clicks"
                 )
                 for mconn in modules
-                for pcomm in mconn.pcomms
+                for pcomm in mconn.gui_pcomms
             }
         },
         state={
             "all_states": {
                 f"{mconn.name}|{pcomm}": State(f"{mconn.name}|{pcomm}|input", "value")
                 for mconn in modules
-                for pcomm in mconn.pcomms
+                for pcomm in mconn.gui_pcomms
             }
         },
     )
     def send_pcomm(all_buttons, all_states):
-        button_id = ctx.triggered_id if not None else "No clicks yet"
+        button_id = (
+            ctx.triggered_id if ctx.triggered_id is not None else "No clicks yet"
+        )
         msg = ""
 
         if ctx.triggered_id is not None:
-            mod_name, pcomm_name, _ = button_id.split("|")
+            logger.debug(f"Send pcomm activated: {all_buttons=}")
+            try:
+                mod_name, pcomm_name, _ = button_id.split("|")
+            except ValueError:
+                logger.error(f"Unexpected triggered button id format: {button_id!r}")
+                return msg
+
             module = modules_dict[mod_name]
             msg = pcomm_name
 
+            logger.debug("ctx triggered_id: " + str(ctx.triggered_id))
+            logger.debug(f"mod_name: {mod_name}, pcomm_name: {pcomm_name}")
+            logger.debug(f"module: {module}")
+            logger.debug(f"messages to send: {msg=}")
+
+            logger.debug(f"All states: {all_states=}")
             # TODO - think of a way to validate the string (potentially a different callback) which is triggered upon entering the text values # noqa
             json_payload = all_states[f"{mod_name}|{pcomm_name}"]
             logger.debug(f"module button {json_payload=}")
@@ -329,8 +353,8 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
             if json_payload:
                 msg = msg + "|" + json_payload
 
-            logger.debug(f"Sending {msg=} to {module.name}@{module.ip}:{module.port}")
-            module.socket_c.sendall(msg.encode())
+            logger.debug(f"Sending {msg=} to {get_module_endpoint(module)}")
+            module.send_message(msg.encode())
 
         return msg
 
@@ -338,7 +362,9 @@ def add_pcomm_sender(app: Dash, modules: list[ModuleConnection]) -> Dash:
 
 
 # TODO: rework this
-def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) -> Dash:
+def add_stats_update(
+    app: Dash, logfile: Path, modules: list[ControlRoomModuleConnection]
+) -> Dash:
     mod_outputs = [Output(f"{m.name}_check_box", "className") for m in modules]
 
     @app.callback(
@@ -373,26 +399,15 @@ def add_stats_update(app: Dash, logfile: Path, modules: list[ModuleConnection]) 
         else:
             log_str_msg = f"No logfile at {logfile}"
 
-        # check corrent up state
-        mod_class_names = []
+        # check current up state - a module which does not reply to `UP` in
+        # time is considered down
         classes = {
             "success": "module_check_box running_module_check_box",
             "fail": "module_check_box",
         }
-        mod_class_names = [classes["success"]] * len(modules)
-
-        # for m in modules:
-        #     try:
-        #         ret = m.socket_c.sendall('UP')
-        #         if ret == 1:
-        #             mod_class_names.append(classes['success'])
-        #         else:
-        #             mod_class_names.append(classes['fail'])
-        #     except Exception as e:
-        #         logger.debug(f"Failed communicating with {m.name} @ {m.ip}"
-        #                      f":{m.port} - {e=}")
-        #         mod_class_names.append(classes['fail'])
-        #
+        mod_class_names = [
+            classes["success"] if m.is_up() else classes["fail"] for m in modules
+        ]
 
         return [lsl_stream_msg, log_str_msg] + mod_class_names
 

@@ -1,43 +1,86 @@
-[python]
-# Modules to be brought up by simply running the python processes async
-# Leave this empty if no blocks should be started like this
-modules_root = '../'                                                            # path to the root if the modules
+# -----------------------------------------------------------------------------
+# Control Room module configuration
+#   This config allows you to define which other modules should be launched 
+#    alongside the control room, how they are launched, and how the control
+#    room can interact with them.
+#
+# 1 Add one module block under [modules.<your-module-name>]
+#
+# 2 Set kind = 'python' or kind = 'exe', depending on how it should be launched
+#   NOTE: kind = 'exe' is EXPERIMENTAL - the interface may still change.
+#
+# 3 For python modules, set:
+#       - cwd = '<path-to-module-root>'
+#   For exe modules, set:
+#       - path = '<path-to-executable>'
+#       - ip, port
+#       - optionally: retry_after_s and max_connect_retries
+#
+# 5 Optional:
+#       - args: passed to exe/python modules as command line args
+#       - kwargs: passed to python module as --key=value
+#       - python_executable: A specific python instance to launch the module with
+#
+# 6 Define macros (optional)
+#       - Macro commands allow you to execute certain commands directly 
+#         from the control room interface
+# -----------------------------------------------------------------------------
 
-# -------------------- Mockup Streamer ---------------------------------------
-[python.modules.dp-mockup-streamer]                                      # names of a module to be used (folder name)
-    type = 'io_data'
-    port = 8081                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-[python.modules.dp-mockup-streamer.kwargs]                               # kwargs to run the main script with
-    stream_name = 'mockup_EEG_stream'
+[modules]
+modules_root = '../' # optional fallback: if a module has no `cwd`, use modules_root/<module_key>
 
-# -------------------- Pass through decoding -> add a callback ----------------
-[python.modules.dp-passthrough]                                      # names of a module to be used (folder name)
-    type = 'pass_through'
-    port = 8083                                                                 # if no port is provided, a random free port is chosen
-    ip = '127.0.0.1'
-    retry_connection_after_s = 1                                                # For modules with a slow start-up time, you might want to increase the time between conncetion attempts, default is 1s and 3 connection attempts
+# Example Python module
+[modules.dp-mockup-streamer]
+kind = 'python'
+# cwd = '../dp-mockup-streamer' # optional, defaults to modules_root/<module_key>
+ip = '127.0.0.1'
+port = 8080
+# retry_after_s = 1
+# max_connect_retries = 5
+# custom_entry_point = 'api.server'  # api.server is the default for calling a python module basically via `python -m api.server` from within the module folder
+
+[modules.dp-mockup-streamer.kwargs] # additional kwargs to be passed to the module
+stream_name = 'mockup_EEG_stream'
+random_data = true
+
+
+# Another Python module
+[modules.dp-passthrough]
+kind = 'python'
+ip = '127.0.0.1'
+port = 8081
+
+
+# Example of an executable module - EXPERIMENTAL, the interface may still change
+# [modules.dp-my-exe-module]
+# kind = 'exe'
+# path = '../dp-my-exe-module/build/my_module.exe' # required, the executable to launch
+# # cwd = '../dp-my-exe-module'                    # optional, working directory for the executable
+# # args = ['--some-flag']                         # optional, command line args
+# ip = '127.0.0.1'
+# port = 8082
+
 
 [macros]
 
 [macros.start_streaming]
-    name = 'START_STREAMING'
-    description = 'start streaming'
+name = 'START_STREAMING'
+description = 'start streaming'
 [macros.start_streaming.default_json]
-    stream_name = 'mockup_stream'
-    date_root = '../'
+stream_name = 'mockup_stream'
+date_root = '../'
 [macros.start_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'START']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+# [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
+com1 = ['dp-mockup-streamer', 'START']
+# com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
 
 [macros.stop_streaming]
-    name = 'STOP_STREAMING'
-    description = 'start streaming'
+name = 'STOP_STREAMING'
+description = 'start streaming'
 [macros.stop_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'STOP']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+# [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
+com1 = ['dp-mockup-streamer', 'STOP']
+# com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
 
 [layout]
 # Configuration of the GUI layout

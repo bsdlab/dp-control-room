@@ -3,10 +3,10 @@ import json
 from dash import dcc, html
 
 from control_room.callbacks import is_ao_module
-from control_room.connection import ModuleConnection
 
 # from control_room.utils.logging import logger
 from control_room.utils.logserver import logfile as log_file_path
+from control_room.utils.modules import ControlRoomModuleConnection
 
 # Default layout state for the control room GUI.
 # Horizontally, the GUI is split into two sections, which each have a vertical split.
@@ -20,7 +20,7 @@ DEFAULT_LAYOUT_STATE = {
 
 
 def get_layout(
-    modules: list[ModuleConnection],
+    modules: list[ControlRoomModuleConnection],
     macros: dict | None,
     layout_cfg: dict | None = None,
 ) -> html.Div:
@@ -33,8 +33,8 @@ def get_layout(
 
     Parameters
     ----------
-    modules : list[ModuleConnection]
-        A list of ModuleConnection objects representing the modules to be included
+    modules : list[ControlRoomModuleConnection]
+        A list of ControlRoomModuleConnection objects representing the modules to be included
         in the application.
     macros : dict | None
         A dictionary containing macro definitions to be used in the application.
@@ -122,7 +122,7 @@ def get_layout(
     )
 
 
-def create_module_server_info(module: ModuleConnection) -> html.Div:
+def create_module_server_info(module: ControlRoomModuleConnection) -> html.Div:
     # this will contain a parent box which is displayed in the header row
     # and some meta info text box, which is displayed only on hover
 
@@ -283,7 +283,7 @@ def get_log_stream_tile(logfile_name: str, height: float | None) -> html.Div:
     )
 
 
-def get_module_tile_layout(module: ModuleConnection) -> html.Div:
+def get_module_tile_layout(module: ControlRoomModuleConnection) -> html.Div:
     """
     Create the tile showing the individual modules
     """
@@ -296,12 +296,6 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
                 className="tile_header",
                 children=[
                     html.Div(className="module_name", children=[f"{module.name}"]),
-                    html.Div(className="module_ip", children=[f"{module.ip}"]),
-                    html.Div(className="module_port", children=[f"{module.port}"]),
-                    html.Div(
-                        className=f"module_type module_{module.type}",
-                        children=[f"{module.type}:{module.near_port}"],
-                    ),
                 ],
             ),
             # the pcommand button input pairs
@@ -309,7 +303,7 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
                 className="tile_pcomms",
                 children=[
                     get_pcomm_button_input_pair(pc, module.name, module)
-                    for pc in module.pcomms
+                    for pc in module.gui_pcomms
                 ],
             ),
         ],
@@ -317,7 +311,7 @@ def get_module_tile_layout(module: ModuleConnection) -> html.Div:
 
 
 def get_pcomm_button_input_pair(
-    pcomm_name: str, mod_name: str, conn: ModuleConnection
+    pcomm_name: str, mod_name: str, conn: ControlRoomModuleConnection
 ) -> html.Div:
     """
     Create pairs of buttons and inputs for each pcommand

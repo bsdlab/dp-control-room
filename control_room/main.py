@@ -7,13 +7,16 @@ import time
 from pathlib import Path
 
 import psutil
+from dareplane_utils.module_handling.communication import SocketCommunicator
 from fire import Fire
+from waitress import wasyncore
 from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
-from control_room.connection import ModuleConnection, ModuleConnectionExe
 from control_room.gui.app import build_app
+from control_room.utils.config import check_and_transform_legacy_cfg
 from control_room.utils.logging import logger
+from control_room.utils.modules import ControlRoomModuleConnection, initialize_modules
 from control_room.utils.network import wait_for_port
 
 # --- For backwards compatibility with python < 3.11
@@ -32,7 +35,7 @@ except ImportError:
 
     except ImportError:
         raise ImportError(
-            "Please install either use python > 3.11 or install `toml` library"
+            "Please install Python > 3.11 or install `toml` library"
             "to able to parse the config files."
         )
 
@@ -42,104 +45,12 @@ logger.setLevel(10)
 SETUP_CFG_PATH: str = "./configs/example_cfg.toml"
 
 
-def test_dummy(debug: bool = True):
-    from tests.resources.tmodule import get_dummy_modules
-
-    cfg = toml_load(Path(SETUP_CFG_PATH))
-    modules = get_dummy_modules()
-    for m in modules:
-        m.get_pcommands()
-        m.start_socket_client()
-        print(m)
-
-    app = build_app(
-        modules,
-        macros=cfg.get("macros", None),  # type: ignore
-        layout_cfg=cfg.get("layout", None),
-    )
-    app.run_server(debug=debug)
-
-
-def initialize_python_modules(mod_cfgs: dict) -> list[ModuleConnection]:
+def close_down_connections(mod_connections: list[ControlRoomModuleConnection]):
     """
-    Initialize Python modules based on the provided configurations.
+    Close all ControlRoomModuleConnection instances.
     """
-    connections = []
-
-    if "modules" not in mod_cfgs:
-        logger.info("No python modules to initialize.")
-        return connections
-
-    if "modules_root" not in mod_cfgs:
-        logger.warning(
-            "No 'modules_root' specified in python module configurations. "
-            f"Using parent directory of current working directory as default ({Path.cwd().parent})."
-        )
-        mod_cfgs["modules_root"] = Path.cwd().parent
-
-    logger.debug(f"Python module configurations found: {mod_cfgs['modules'].keys()}")
-
-    # Python modules
-    for module_name, module_cfg in mod_cfgs["modules"].items():
-        connections.append(
-            ModuleConnection(
-                name=module_name,
-                module_root_path=Path(mod_cfgs["modules_root"]),
-                **module_cfg,
-            )
-        )
-
-    return connections
-
-
-def initialize_exe_modules(mod_cfgs: dict) -> list[ModuleConnection]:
-    """
-    Initialize modules provided with an executable target. NOT WORKING ATM.
-    """
-    connections = []
-
-    if "modules" not in mod_cfgs:
-        logger.info("No exe modules to initialize.")
-        return connections
-
-    logger.debug(f"Exe module configurations found: {mod_cfgs['modules'].keys()}")
-
-    # Exe modules
-    for module_name, module_cfg in mod_cfgs["modules"].items():
-        required_keys = ["path", "ip", "port"]
-        for key in required_keys:
-            if key not in module_cfg:
-                raise KeyError(
-                    f"Module configuration for {module_name} is missing required key: {key}"
-                )
-
-        connections.append(
-            ModuleConnectionExe(
-                name=module_name,
-                exe_path=Path(module_cfg["path"]),
-                ip=module_cfg["ip"],
-                port=module_cfg["port"],
-                pcomms=list(module_cfg.get("pcomms", {}).keys()),
-                pcomms_defaults=module_cfg.get("pcomms", {}),
-            )
-        )
-
-    return connections
-
-
-def close_down_connections(mod_connections: list[ModuleConnection]):
-    """
-    Close all ModuleConnection instances.
-    """
-    # Close down
     for conn in mod_connections:
-        if conn.socket_c:
-            # API connection
-            conn.stop_socket_c()
-
-        # the server process
-        if conn.host_process:
-            conn.stop_process()
+        conn.stop()
 
 
 def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
@@ -157,9 +68,11 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
     """
 
-    cfg = toml_load(Path(setup_cfg_path))
+    cfg_file = Path(setup_cfg_path).resolve()
+    cfg = toml_load(cfg_file)
 
-    connections = []
+    cfg = check_and_transform_legacy_cfg(cfg)
+
     log_server = psutil.Process(
         subprocess.Popen(
             [sys.executable, "-m", "control_room.utils.logserver"],
@@ -169,31 +82,22 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
     wait_for_port(port=9020, timeout=5)  # wait for log server to be ready
 
     logger.info(f"Opening control room with configuration: {setup_cfg_path}")
-    cbb_th = None
-    server = None
+    shutdown_requested = threading.Event()
+
+    cbb_th: threading.Thread | None = None  # used in the finally
 
     try:
-        # Other modules
-        if "exe" in cfg.keys():
-            connections += initialize_exe_modules(cfg["exe"])
+        connections = initialize_modules(cfg, cfg_file)
 
-        if "python" in cfg.keys():
-            connections += initialize_python_modules(cfg["python"])
-
-        # start the module servers - spawning the processes
+        # start and connect to the modules
         for conn in connections:
-            logger.debug(f"Starting module server for {conn.name=}")
-            conn.start_module_server()
+            logger.debug(f"Launching and connecting to {conn.name=}")
+            conn.start()
 
         time.sleep(2)  # give the servers a moment to start
 
-        # connect clients to the servers
+        # Get the pcomms for each module
         for conn in connections:
-            logger.debug(f"Starting socket client for {conn.name=}")
-            conn.start_socket_client()
-
-            logger.debug(f"Getting PCOMMS for {conn.name=}")
-            # request primary commands
             conn.get_pcommands()
 
         # hook up the callback broker
@@ -203,16 +107,22 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
 
         # prepare the connection socket timeouts to be quicker
         for c in connections:
-            c.socket_c.settimeout(0.001)
+            if (
+                c.communicator
+                and isinstance(c.communicator, SocketCommunicator)
+                and c.communicator.socket_c
+            ):
+                c.communicator.socket_c.settimeout(0.001)
 
         cbb = CallbackBroker(
             mod_connections={c.name: c for c in connections},
             stop_event=cbb_stop,
         )
         logger.info(
-            f"CallbackBroker has following modules connected: {list[cbb.mod_connections.keys()]}"
+            f"CallbackBroker has following modules connected: {list(cbb.mod_connections.keys())}"
         )
-        cbb_th = threading.Thread(target=cbb.listen_for_callbacks)
+        # daemon, so a hanging broker can never keep the interpreter alive
+        cbb_th = threading.Thread(target=cbb.listen_for_callbacks, daemon=True)
         cbb_th.start()
 
         # Create the dash app
@@ -222,31 +132,55 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
             layout_cfg=cfg.get("layout", None),
         )
 
-        # Note: debug True will lead to conflicts with sockets already being used
-        # since dash will run the script to this point another time
-        # Use the test_dummy for GUI development instead
-
-        # for the debugging Flask server
-        # app.run_server(debug=True)
-
-        # for a lightweight production server
-        # app.enable_dev_tools(debug=True)
-
-        def on_shutdown():
-            """Close down server on shutdown signal, so we can cleanup properly."""
-            if server:
-                server.close()
-
-        # Register signal handlers for graceful shutdown
-        # SIGBREAK is Windows-specific
-        if hasattr(signal, "SIGBREAK"):
-            signal.signal(signal.SIGBREAK, lambda s, f: on_shutdown())  # type: ignore
-        signal.signal(signal.SIGINT, lambda s, f: on_shutdown())
-        signal.signal(signal.SIGTERM, lambda s, f: on_shutdown())
-
         logger.info("Serving control room on port 8050")
         server = create_server(app.server, port=8050)
-        server.run()
+
+        def on_shutdown(*args):
+            """Request shutdown from within a signal handler.
+
+            Only a flag is set here and the asyncore loop is woken up. Closing
+            the sockets directly from the handler would pull them away from the
+            `select()` call the loop is blocked in, which raises an `OSError`.
+            The actual closing is done on the main thread once `run()` returned.
+            """
+            logger.info("Shutdown signal received, stopping the server ...")
+            shutdown_requested.set()
+            try:
+                # wakes up the `select()` of the asyncore loop
+                server.trigger.pull_trigger()
+            except Exception as e:
+                logger.error(f"Error while waking up the server loop: {e}")
+
+        # Register signal handlers for graceful shutdown
+        # SIGBREAK is Windows-specific and is what CTRL+Break sends
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, on_shutdown)  # type: ignore
+        signal.signal(signal.SIGINT, on_shutdown)
+        signal.signal(signal.SIGTERM, on_shutdown)
+
+        # `run()` blocks until the socket map is empty, so it is driven here in
+        # steps to be able to react to a shutdown request in between
+        while not shutdown_requested.is_set():
+            try:
+                wasyncore.loop(
+                    timeout=0.5,
+                    map=server._map,
+                    count=1,
+                    use_poll=server.adj.asyncore_use_poll,
+                )
+            except KeyboardInterrupt:
+                # On Windows the KeyboardInterrupt can surface here instead of
+                # the signal handler being run to completion
+                shutdown_requested.set()
+            except OSError as e:
+                logger.debug(f"Server loop stopped with: {e}")
+                break
+
+        logger.debug("Closing server sockets")
+        try:
+            wasyncore.close_all(server._map, ignore_all=True)
+        except Exception as e:
+            logger.error(f"Error while closing server sockets: {e}")
 
         logger.info("Control room server has stopped.")
 
@@ -256,7 +190,8 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         if cbb_th:
             try:
                 logger.debug("Stopping callback broker")
-                cbb_stop.set()  # type: ignore
+                if cbb_stop:
+                    cbb_stop.set()
                 cbb_th.join(timeout=3)
             except Exception as e:
                 logger.error(f"Error while stopping CallbackBroker: {e}")
@@ -274,11 +209,11 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         # message reaches the server via TCP
         if log_server.is_running():
             try:
-                print("Using log_server.terminate()")
+                print("Calling log_server.terminate()")
                 log_server.terminate()
                 log_server.wait(timeout=3)
             except psutil.TimeoutExpired:
-                print("TimeoutExpired, using log_server.kill()")
+                print("TimeoutExpired, calling log_server.kill()")
                 log_server.kill()
 
 

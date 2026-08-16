@@ -23,8 +23,7 @@ def run_server(
     logger.setLevel(loglevel)
 
     pcommand_map = {
-        "START": test_print,  # note: that this will return a thread and an according stop_event, the default server will be able to do the bookkeeping including stopping the thread when STOP or CLOSE are called
-        "GET_PCOMMS": "START|INIT|STOP|RUN_BLOCK",
+        "START": test_print,
     }
 
     server = DefaultServer(port, ip=ip, pcommand_map=pcommand_map, name="control_room")
@@ -46,7 +45,7 @@ def run_slow_startup_server(
     logger.setLevel(loglevel)
 
     pcommand_map = {
-        "START": test_print,  # note: that this will return a thread and an according stop_event, the default server will be able to do the bookkeeping including stopping the thread when STOP or CLOSE are called
+        "START": test_print,
         "SLOWSERVERTEST": lambda x: print("SLOWSERVERTEST"),
     }
 
