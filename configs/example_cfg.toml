@@ -38,3 +38,10 @@ modules_root = '../'                                                            
     # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
     com1 = ['dp-mockup-streamer', 'STOP']
     # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+
+[layout]
+# Configuration of the GUI layout
+    x_div = 50
+    y_div_left = 50
+    # If not provided, will automatically fit to size
+    # y_div_right = 50
