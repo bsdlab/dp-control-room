@@ -1,11 +1,11 @@
 # A server implementation for testing purposes only
 import threading
-import time
 
 from dareplane_utils.default_server.server import DefaultServer
+from dareplane_utils.logging.logger import get_logger
 from fire import Fire
 
-from control_room.utils.logging import logger
+logger = get_logger("mockup_module")
 
 
 def test_print() -> int:
