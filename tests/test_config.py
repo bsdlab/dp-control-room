@@ -17,7 +17,11 @@ def legacy_cfg():
     return toml_load(LEGACY_CFG_PATH)
 
 
-def test_legacy_cfg_logs_warning(legacy_cfg, caplog):
+def test_legacy_cfg_logs_warning(legacy_cfg, caplog, monkeypatch):
+    # control_room's logger has propagate=False (set by dareplane_utils.get_logger)
+    # so records never reach caplog's root-logger handler unless we re-enable it here.
+    monkeypatch.setattr(logging.getLogger("control_room"), "propagate", True)
+
     with caplog.at_level(logging.WARNING, logger="control_room"):
         check_and_transform_legacy_cfg(legacy_cfg)
 
@@ -32,9 +36,7 @@ def test_legacy_cfg_transforms_modules(legacy_cfg):
     assert "modules" in result, "Expected top-level 'modules' key after transform"
 
     # scalar siblings such as modules_root are not module tables
-    result_modules = {
-        k: v for k, v in result["modules"].items() if isinstance(v, dict)
-    }
+    result_modules = {k: v for k, v in result["modules"].items() if isinstance(v, dict)}
 
     for name, module_cfg in result_modules.items():
         assert module_cfg.get("kind") == "python", (
