@@ -29,7 +29,6 @@ except ImportError:
 def check_and_transform_legacy_cfg(cfg: dict):
     warned: bool = False
     new_cfg = copy.deepcopy(cfg)
-    print(new_cfg)
     for mod_type in ["python", "exe"]:
         per_type_cfgs = new_cfg.get(mod_type, None)
         if per_type_cfgs is None:
