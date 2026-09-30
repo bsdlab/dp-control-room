@@ -1,5 +1,7 @@
 # utilities for validating and parsing config files
+import copy
 from pathlib import Path
+
 from control_room.utils.logging import logger
 
 SETUP_CFG_PATH: str = "./configs/example_cfg.toml"
@@ -25,14 +27,13 @@ except ImportError:
 
 
 def check_and_transform_legacy_cfg(cfg: dict):
-    python_cfgs = cfg.get("python", None)
-    exe_cfgs = cfg.get("exe", None)
     warned: bool = False
-
-    new_cfg: dict = {"modules": {}}
-    for per_type_cfgs in [exe_cfgs, python_cfgs]:
+    new_cfg = copy.deepcopy(cfg)
+    for mod_type in ["python", "exe"]:
+        per_type_cfgs = new_cfg.get(mod_type, None)
         if per_type_cfgs is None:
             continue
+
         modules = per_type_cfgs.get("modules", None)
         modules_root = per_type_cfgs.get("modules_root", None)
 
@@ -48,7 +49,9 @@ def check_and_transform_legacy_cfg(cfg: dict):
 
         # In the legacy config only the python modules were initiated from the control room
         # everything else, including the exe modules was connection only
-        kind = "python" if per_type_cfgs == python_cfgs else "conn_only"
+        kind = "conn_only" if mod_type == "exe" else "python"
+        if "modules" not in new_cfg:
+            new_cfg["modules"] = {}
         new_cfg["modules"] |= {m: mcfg | {"kind": kind} for m, mcfg in modules.items()}
 
         # modules_root lived under [python] in the legacy convention, but is
@@ -56,9 +59,7 @@ def check_and_transform_legacy_cfg(cfg: dict):
         if modules_root:
             new_cfg["modules"]["modules_root"] = modules_root
 
-    if "macros" in cfg.keys():
-        new_cfg["macros"] = cfg["macros"]
-
+        new_cfg.pop(mod_type, None)
     return new_cfg
 
 
