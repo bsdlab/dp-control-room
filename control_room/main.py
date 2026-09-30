@@ -14,10 +14,10 @@ from waitress.server import create_server
 
 from control_room.callbacks import CallbackBroker
 from control_room.gui.app import build_app
+from control_room.utils.config import check_and_transform_legacy_cfg
 from control_room.utils.logging import logger
 from control_room.utils.modules import ControlRoomModuleConnection, initialize_modules
 from control_room.utils.network import wait_for_port
-from control_room.utils.config import check_and_transform_legacy_cfg
 
 # --- For backwards compatibility with python < 3.11
 try:
@@ -126,7 +126,11 @@ def run_control_room(setup_cfg_path: str = SETUP_CFG_PATH):
         cbb_th.start()
 
         # Create the dash app
-        app = build_app(connections, macros=cfg.get("macros", None))
+        app = build_app(
+            connections,
+            macros=cfg.get("macros", None),
+            layout_cfg=cfg.get("layout", None),
+        )
 
         logger.info("Serving control room on port 8050")
         server = create_server(app.server, port=8050)
